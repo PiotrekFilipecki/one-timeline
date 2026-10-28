@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Klon Museum of Motion: dane, nie kod projektu.
+    "reference/**",
   ]),
 ]);
 

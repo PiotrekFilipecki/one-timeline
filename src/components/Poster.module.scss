@@ -1,0 +1,181 @@
+// Plakat: 3 rzędy (indeks, scena, stopka), min 100svh, overflow ukryty, żeby oversized
+// typografia mogła być cięta krawędzią kadru bez poziomego scrolla. Kolory wyłącznie z --bg/--fg/--body.
+
+.field {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: var(--gutter);
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.index {
+  font-family: var(--font-mono);
+  font-size: var(--step-1);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.word {
+  font-family: var(--font-display);
+  font-weight: var(--wght-display);
+  font-variation-settings: "wdth" var(--wdth-rest);
+  font-size: clamp(96px, 28vw, 520px);
+  line-height: 0.85;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--fg);
+}
+
+.foot {
+  display: grid;
+  grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+  gap: var(--gutter);
+  align-items: end;
+  padding-top: var(--gutter);
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.line {
+  max-width: 34ch;
+  font-size: var(--step-2);
+  font-weight: var(--wght-body);
+  line-height: 1.25;
+  color: var(--body);
+}
+
+.code {
+  display: grid;
+  gap: 0.35em;
+  justify-self: end;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step-1);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  color: var(--fg);
+
+  @media (max-width: 767px) {
+    justify-self: start;
+  }
+}
+
+/* ---------- Rozdziały: wariancja układu (pokrętło 8), nie dekoracja ---------- */
+
+/* Hero: zdanie zamiast słowa, łamane na krawędziach. Indeksy górne = znaczniki czasu. */
+.field[data-chapter="hero"] .word {
+  font-size: clamp(40px, 7.6vw, 128px);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-transform: none;
+  white-space: normal;
+}
+
+.field[data-chapter="hero"] .word sup {
+  margin-left: 0.08em;
+  font-family: var(--font-mono);
+  font-size: 0.22em;
+  font-weight: 500;
+  letter-spacing: 0;
+  vertical-align: 1.9em;
+}
+
+/* Dyptyki: dwa słowa, ta sama skala i siatka. */
+.field[data-chapter="position"] .word,
+.field[data-chapter="reverse"] .word {
+  font-size: clamp(56px, 16vw, 300px);
+}
+
+.field[data-chapter="reverse"] .stage {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* EASE: słowo w prawym dolnym rogu sceny, cisza nad nim. */
+.field[data-chapter="ease"] .stage {
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+/* STAGGER: oversized, cięte prawą krawędzią kadru. */
+.field[data-chapter="stagger"] .word {
+  /* Pomiar P0 (glify, Range): STAGGER = 4.75em przy wght 800 / wdth 100 → 24vw = 114 % kadru, R cięte w połowie. */
+  font-size: 24vw;
+  margin-right: calc(-1 * var(--gutter));
+}
+
+/* SCRUB: środek kadru. Stan spoczynku = środek osi (P2 rozciąga 50→150). */
+.field[data-chapter="scrub"] .word {
+  font-size: 22vw;
+  align-self: center;
+}
+
+.field[data-chapter="scrub"] .foot {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
+}
+
+/* COST: słowo u góry sceny, wielka liczba ms pod nim z prawej. */
+.field[data-chapter="cost"] .stage {
+  justify-content: space-between;
+}
+
+.number {
+  align-self: flex-end;
+  font-family: var(--font-display);
+  font-size: clamp(64px, 15vw, 280px);
+  font-weight: 300;
+  font-variation-settings: "wdth" 75;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  text-align: right;
+  color: var(--fg);
+}
+
+.number small {
+  display: block;
+  margin-top: 0.18em;
+  font-family: var(--font-mono);
+  font-size: var(--step-1);
+  font-weight: 500;
+  font-variation-settings: normal;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* YOURS: słowo na samym dole, cięte dolną krawędzią. Stopka wędruje nad nie. */
+.field[data-chapter="yours"] .word {
+  /* Pomiar P0: YOURS = 3.51em → 26vw = 91 % kadru. Cięcie ma być tylko dolne, nie prawe. */
+  font-size: 26vw;
+}
+
+.field[data-chapter="yours"] .stage {
+  order: 3;
+  justify-content: flex-end;
+  margin-bottom: calc(-1 * var(--gutter) - 0.2em);
+}
+
+.field[data-chapter="yours"] .foot {
+  order: 2;
+  align-self: start;
+  padding-top: var(--step-3);
+}

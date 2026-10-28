@@ -35,7 +35,7 @@ Body tekst ≥4.5:1, display ≥3:1. Zmiana koloru = zmiana tokenu w jednym miej
 Jedna krzywa wejścia, jedna wyjścia, rejestrowane raz przez CustomEase przed pierwszym builderem.
 
 ```ts
-CustomEase.create("beat", "M0,0 C0.18,0 0.12,1.12 0.46,1.05 0.7,1.01 1,1");   // szybki atak, ~6% przestrzelenia
+CustomEase.create("beat", "M0,0 C0.18,0 0.12,1.12 0.46,1.05 0.7,1.01 0.85,1 1,1");   // szybki atak, ~6% przestrzelenia
 CustomEase.create("beat-exit", "M0,0 C0.6,0 0.88,0.35 1,1");                  // wolny start, szybki koniec, zero przestrzelenia
 ```
 
@@ -44,6 +44,7 @@ CustomEase.create("beat-exit", "M0,0 C0.6,0 0.88,0.35 1,1");                  //
 - Cięcie przez literę: rośnięcie na `expo.in` (0.5–0.7 s), twarde cięcie, następne słowo wchodzi na `beat`.
 - Mocniejszy moment (`back.out(2.2)`, `elastic.out(1, 0.45)`): maks. jeden na ekran.
 - Krzywe są punktem startu: stroimy je w P1 na żywo, a zmianę zapisujemy tutaj.
+- P0 (28.10.2026): pierwotny zapis `beat` miał po `C` pięć punktów (`… 0.46,1.05 0.7,1.01 1,1`), a drugi segment kubiczny wymaga trzech. CustomEase rzucał `Invalid CustomEase` i zrzucał stronę. Dopisany punkt kontrolny `0.85,1` domyka osiadanie bez zmiany kształtu: szczyt 1.05 przy 46 %, powrót do 1 przez 1.01 w 70 %.
 
 ## Czasy
 

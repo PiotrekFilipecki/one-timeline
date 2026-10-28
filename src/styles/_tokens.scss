@@ -1,0 +1,39 @@
+/*
+  LOCK (taste-guardrail), One Timeline v7
+  1. Świat: dwukolorowy druk w ruchu. Riso i sitodruk × kinetyczne identyfikacje
+     Studio Dumbar × Experimental Jetset. Nie: tęczowy landing, kobalt Museum of Motion, v6.
+  2. Typografia: Anybody variable (wdth 50–150, wght 100–900), jedna rodzina, jest aktorem.
+     Mono tylko w linijkach kodu (stos systemowy, bez drugiego webfontu).
+  3. Kolor: 8 nasyconych pól w łańcuchu (src/lib/palette.ts). Każda klatka = dokładnie 2 farby:
+     pole + typografia. Zero gradientów, cieni, przenikań. Kolor zmienia tylko cięcie.
+  4. Ruch strukturalny: oversized typografia cięta krawędzią kadru (STAGGER prawa krawędź,
+     YOURS dolna). Rozdziały łamią siatkę pozycją słowa, nie dekoracją.
+  5. Sygnatura: cięcie przez literę (od P1). Głowica hairline w kolorze typografii.
+  Pokrętła: wariancja 8 · ruch 8 (jeden występ naraz) · gęstość 3.
+  To NIE może wyglądać jak kolorowe sekcje landingu.
+*/
+
+:root {
+  /* Farby: nadpisywane inline na [data-chapter] z palette.ts. Fallback = hero. */
+  --bg: #ff4fb4;
+  --fg: #4a0d3a;
+  --body: var(--fg);
+
+  /* Typografia. --font-anybody ustawia next/font na <html>. */
+  --font-display: var(--font-anybody), "Anybody Fallback", "Arial Narrow", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Skala: 100 → 162 → 262 (modularna), rytm odstępów. */
+  --gutter: clamp(16px, 2.4vw, 40px);
+  --step-1: clamp(15px, 1.1vw, 19px);
+  --step-2: clamp(18px, 1.6vw, 26px);
+  --step-3: clamp(28px, 3.2vw, 52px);
+  --step-4: clamp(44px, 6.4vw, 108px);
+  --step-5: clamp(88px, 16vw, 300px);
+  --step-6: clamp(120px, 26vw, 460px);
+
+  /* Spoczynek osi. Ruch zmienia je tylko przez GSAP (font-variation-settings). */
+  --wdth-rest: 100;
+  --wght-display: 800;
+  --wght-body: 450;
+}

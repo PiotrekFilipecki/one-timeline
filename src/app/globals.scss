@@ -1,0 +1,48 @@
+@use "../styles/tokens";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--wght-body);
+  font-variation-settings: "wdth" var(--wdth-rest);
+  font-size: var(--step-1);
+  line-height: 1.3;
+  background: var(--bg);
+  color: var(--body);
+}
+
+/* Bramka pierwszej klatki: display type czeka na fonty, tylko gdy JS zdążył oznaczyć <html>.
+   Bez JS reguła nigdy nie pasuje. Deadline 2 s w src/motion/boot.ts zdejmuje marker sam. */
+html[data-motion-boot="pending"] [data-fonts-wait] {
+  visibility: hidden;
+}
+
+/* Stała typografia celów splitu (animaxxing text-stability): kerning nie zmienia się między split a revert. */
+[data-split] {
+  font-kerning: none;
+  text-rendering: optimizeSpeed;
+}
+
+:focus-visible {
+  outline: 3px solid var(--fg);
+  outline-offset: 4px;
+}
+
+h1,
+h2,
+p,
+pre {
+  margin: 0;
+}
