@@ -1,0 +1,836 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>One Timeline</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* CARD: continuous world. The whole page is ONE GSAP master timeline scrubbed by scroll; labels are chapters.
+   Cast: the eight letters of TIMELINE, on stage from first frame to last. Grounds drift signal orange → cobalt → ink → orange.
+   Signature: the dock is that master timeline, live and draggable. Type: Unbounded (cast), Instrument Sans (text). One theme on purpose.
+   v6 CHOREOGRAPHY: one camera (#cam) that pushes, match-cuts and holds; letters with weight (anticipation, squash, settle);
+   one SVG thread that is the timeline itself and morphs into every chapter's diagram, ending in the dock.
+   Textures carry meaning: halftone = print/rest, graph paper = the ease plot, scanlines = frames. NOT: fade-up sections, crossfades, decoration. */
+:root{
+  color-scheme:light;
+  --orange:#FF4A1C; --cobalt:#2238F0; --ink:#0E0E10; --bone:#F6F3EE; --mute:rgba(14,14,16,.62);
+  --f-cast:"Unbounded","Arial Black",Impact,sans-serif;
+  --f-text:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+  --f-code:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --gl:max(20px,env(safe-area-inset-left,0px)); --gr:max(20px,env(safe-area-inset-right,0px));
+  --dock:44px;
+}
+*{box-sizing:border-box}
+html,body{background:var(--orange);color:var(--ink)}
+body{margin:0;font:400 17px/1.5 var(--f-text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::selection{background:var(--ink);color:var(--orange)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+h1,h2,h3{margin:0;font-family:var(--f-cast);font-weight:800;letter-spacing:-.03em;line-height:.95}
+p{margin:0}
+code{font-family:var(--f-code);font-size:.86em}
+
+/* ---------- grounds (continuous colour drift) ---------- */
+.ground{position:fixed;inset:0;z-index:0;pointer-events:none}
+.ground{overflow:hidden}
+#gOrange{background-color:var(--orange);background-image:linear-gradient(170deg in oklab,#FF6234,#F03E10)}
+#gCobalt{background-color:var(--cobalt);background-image:linear-gradient(170deg in oklab,#3049FF,#1A2BD2);opacity:0}
+#gInk{background-color:var(--ink);background-image:linear-gradient(170deg in oklab,#1B1B21,#0B0B0D);opacity:0}
+.tex{position:absolute;inset:-14% -2%}
+/* halftone screen, densest bottom-right, the print a timeline rests on */
+#gOrange .tex{background-image:radial-gradient(circle,rgb(14 14 16 / .2) 0 1.4px,rgb(14 14 16 / 0) 2px);background-size:13px 13px;-webkit-mask-image:radial-gradient(ellipse 62% 70% at 100% 96%,#000 10%,#0000 78%);mask-image:radial-gradient(ellipse 62% 70% at 100% 96%,#000 10%,#0000 78%)}
+/* graph paper: the ease chapter is a plot */
+#gCobalt .tex{background-image:linear-gradient(rgb(246 243 238 / .17) 1px,rgb(246 243 238 / 0) 1px),linear-gradient(90deg,rgb(246 243 238 / .17) 1px,rgb(246 243 238 / 0) 1px),linear-gradient(rgb(246 243 238 / .07) 1px,rgb(246 243 238 / 0) 1px),linear-gradient(90deg,rgb(246 243 238 / .07) 1px,rgb(246 243 238 / 0) 1px);background-size:120px 120px,120px 120px,24px 24px,24px 24px}
+/* scanlines: the frame chapter is rasterised */
+#gInk .tex{background-image:repeating-linear-gradient(0deg,rgb(246 243 238 / .05) 0 1px,rgb(246 243 238 / 0) 1px 4px)}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.16;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+@media (forced-colors:active){.ground{background:Canvas}.tex,.grain{display:none}}
+
+/* ---------- the stage (fixed, one world) ---------- */
+.stage{position:fixed;inset:0;z-index:2;--fg:var(--ink);color:var(--fg);pointer-events:none;overflow:hidden}
+.cam{position:absolute;inset:0;transform-origin:0 0}
+.thread{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.thread path{fill:none;stroke:var(--fg);stroke-width:2.5;stroke-linecap:butt;stroke-linejoin:round}
+#arcs path{stroke-width:1.5;opacity:.7}
+#ticks line{stroke:var(--fg);stroke-width:1.5}
+#ticks text{fill:var(--fg);font:600 11px var(--f-text);letter-spacing:.01em}
+.word{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);display:flex;font:900 clamp(52px,12.4vw,230px)/1 var(--f-cast);letter-spacing:-.045em;white-space:nowrap;color:var(--fg)}
+.word .L{display:inline-block;transform-origin:50% 100%}
+.kicker{position:absolute;left:var(--gl);top:calc(env(safe-area-inset-top,0px) + 22px);font:600 15px/1.3 var(--f-text);max-width:30ch}
+.kicker b{font-weight:700}
+.lede{position:absolute;left:var(--gl);bottom:calc(var(--dock) + 28px);max-width:46ch;font-size:clamp(17px,1.5vw,21px);line-height:1.4}
+
+.clips{position:absolute;left:18vw;right:18vw;height:90px;opacity:0}
+.clips i{position:absolute;left:0;height:7px;border-radius:4px;background:var(--fg)}
+.chipset{position:absolute;display:grid;place-items:start;overflow:hidden;padding:3px}
+.chip{grid-area:1/1;font:500 clamp(14px,1.2vw,17px)/1 var(--f-code);padding:8px 12px;border-radius:999px;border:1.5px solid currentColor;white-space:nowrap;opacity:0}
+.chip b{font-weight:700}
+
+.ghost{position:absolute;left:0;top:0;font:900 clamp(52px,12.4vw,230px)/1 var(--f-cast);letter-spacing:-.045em;color:var(--fg);opacity:0}
+.tchart{position:absolute;left:0;top:0;overflow:visible;opacity:0}
+.tchart path{fill:none;stroke:var(--fg);stroke-width:1.5}
+.tchart circle{fill:var(--fg)}
+.tchart line{stroke:var(--fg);stroke-width:1;stroke-dasharray:2 5;opacity:.55}
+.ln-mask{padding-bottom:.08em;margin-bottom:-.08em}
+
+.glyph{position:absolute;left:0;top:0;font:900 22px/1 var(--f-cast);color:var(--fg);opacity:0;will-change:auto}
+.dust{position:absolute;left:0;top:0;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:var(--orange);opacity:0}
+
+.meter{position:absolute;right:var(--gr);top:calc(env(safe-area-inset-top,0px) + 18px);text-align:right;color:var(--bone);opacity:0}
+.meter b{display:block;font:900 clamp(80px,13vw,220px)/.85 var(--f-cast);letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.meter span{font-size:14px;opacity:.7}
+.graph{position:absolute;left:var(--gl);right:var(--gr);bottom:calc(var(--dock) + 20px);height:16vh;opacity:0}
+.graph canvas{width:100%;height:100%;display:block}
+.pipe{position:absolute;right:var(--gr);bottom:calc(var(--dock) + 16vh + 36px);display:flex;gap:6px;opacity:0}
+.pipe span{font:600 13px/1 var(--f-text);padding:7px 11px;border-radius:999px;border:1.5px solid rgba(246,243,238,.25);color:rgba(246,243,238,.45);transition:background-color .2s,color .2s,border-color .2s}
+.pipe span.on{color:var(--ink);background:var(--bone);border-color:var(--bone)}
+.pipe span.hot{color:var(--bone);background:var(--orange);border-color:var(--orange)}
+
+.rows{position:absolute;left:50%;transform:translateX(-50%);display:grid;gap:10px;opacity:0}
+.row{display:grid;grid-template-columns:150px auto;align-items:center;gap:16px}
+.row span{font:500 14px/1.2 var(--f-code)}
+.row .mask{overflow:hidden;padding:4px 0;font:900 clamp(26px,4.2vw,72px)/1 var(--f-cast);letter-spacing:-.04em;white-space:nowrap}
+.row .mask i{display:inline-block;font-style:normal}
+
+.cap{position:absolute;max-width:min(520px,86vw);display:grid;gap:12px;opacity:0;visibility:hidden}
+.cap h2{font-size:clamp(30px,3.6vw,58px)}
+.cap p{font-size:clamp(16px,1.3vw,19px);line-height:1.45;max-width:40ch}
+#c-cost{color:var(--bone)}
+.swap .alt{opacity:0}
+.cap-tl{left:var(--gl);top:calc(env(safe-area-inset-top,0px) + 22px)}
+.cap-bl{left:var(--gl);bottom:calc(var(--dock) + 28px)}
+.cap-tr{right:var(--gr);top:calc(env(safe-area-inset-top,0px) + 22px);text-align:right;justify-items:end}
+.cap-br{right:var(--gr);bottom:calc(var(--dock) + 28px);text-align:right;justify-items:end}
+.swap{display:grid}
+.swap > *{grid-area:1/1}
+
+/* ---------- the scroll track ---------- */
+.track{position:relative;z-index:0}
+
+/* ---------- dock = the master timeline (signature) ---------- */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;height:calc(var(--dock) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);padding-left:var(--gl);padding-right:var(--gr);background:var(--ink);color:var(--bone);display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;user-select:none;-webkit-user-select:none}
+.dk-tc{font:600 13px/1 var(--f-code);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dk-tc small{opacity:.5;font-weight:400}
+.dk-line{position:relative;height:100%;cursor:ew-resize;touch-action:none}
+.seg{position:absolute;top:12px;bottom:12px;border-left:1px solid rgba(246,243,238,.3);padding-left:7px;font:500 12px/20px var(--f-text);color:rgba(246,243,238,.55);white-space:nowrap;overflow:hidden}
+.seg.on{color:var(--bone)}
+.seg.on::after{content:"";position:absolute;left:0;right:2px;bottom:-3px;height:2px;background:var(--orange)}
+.dk-ph{position:absolute;top:6px;bottom:6px;left:0;width:100%;pointer-events:none}
+.dk-ph::before{content:"";position:absolute;left:-1px;top:0;bottom:0;width:2px;background:var(--orange)}
+.dk-ph b{position:absolute;left:-8px;top:-2px;width:16px;height:12px;background:var(--orange);border-radius:3px 3px 8px 8px;pointer-events:auto;cursor:grab}
+
+/* ---------- finale (flow) ---------- */
+.finale{position:relative;z-index:10;background:var(--orange);padding:clamp(80px,12vh,140px) var(--gr) 120px var(--gl);display:grid;gap:clamp(64px,10vh,120px)}
+.wrap{max-width:1240px;margin:0 auto;width:100%;display:grid;gap:28px}
+.finale h2{font-size:clamp(44px,7vw,120px)}
+.finale .sub{font-size:clamp(17px,1.5vw,21px);max-width:52ch}
+.cmd{font:500 clamp(14px,1.3vw,18px)/2.3 var(--f-code);background:var(--ink);color:var(--bone);border-radius:14px;padding:18px 22px}
+.cmd input,.cmd select{font:inherit;background:transparent;color:var(--orange);border:0;border-bottom:2px solid var(--orange);border-radius:0;padding:0 2px;width:5ch}
+.cmd select{width:auto}
+.cmd select option{color:var(--ink)}
+.cmd .s{color:#9FB0FF}
+.cubes{display:grid;gap:12px;padding:8px 0}
+.cube{width:clamp(56px,6vw,84px);aspect-ratio:1;border-radius:10px;background:var(--ink);color:var(--orange);display:grid;place-items:center;font:900 clamp(26px,3vw,40px)/1 var(--f-cast)}
+.btns{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.lit{--btn:var(--ink);border:0;border-radius:12px;padding:14px 22px;font:700 16px/1 var(--f-text);color:var(--bone);cursor:pointer;background:linear-gradient(color-mix(in oklch,var(--btn),white 16%),var(--btn));box-shadow:inset 0 1px 0 rgb(255 255 255 / .22),inset 0 -2px 0 rgb(0 0 0 / .35),0 1px 2px rgb(0 0 0 / .4),0 10px 26px -8px rgb(14 14 16 / .55);transition:translate .12s cubic-bezier(.23,1,.32,1),filter .15s}
+.lit:hover{filter:brightness(1.15)}
+.lit:active{translate:0 1px;box-shadow:inset 0 2px 5px rgb(0 0 0 / .45)}
+.ghostbtn{border:1.5px solid var(--ink);background:transparent;border-radius:12px;padding:12.5px 20px;font:600 16px/1 var(--f-text);cursor:pointer}
+.ghostbtn:active{translate:0 1px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{border:1.5px solid var(--ink);background:transparent;border-radius:999px;padding:9px 16px;font:600 14px/1 var(--f-text);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--orange)}
+.codebox{background:var(--ink);color:var(--bone);border-radius:14px;overflow:hidden;min-width:0}
+.codehead{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid rgba(246,243,238,.12);font:500 13px/1 var(--f-code);opacity:.9}
+.copy{background:none;border:1px solid rgba(246,243,238,.35);border-radius:8px;padding:6px 10px;font:600 12px/1 var(--f-text);cursor:pointer}
+pre{margin:0;padding:18px;overflow-x:auto;font:400 13.5px/1.65 var(--f-code)}
+.tok-c{color:#8A8A93}.tok-s{color:#FFB199}.tok-k{color:#9FB0FF}.tok-n{color:#FF8A66}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:0 48px;border-top:2px solid var(--ink)}
+.note{padding:22px 0 24px;border-bottom:1px solid rgba(14,14,16,.25);display:grid;gap:8px;min-width:0}
+.note h3{font-size:clamp(20px,1.8vw,26px);letter-spacing:-.02em}
+.note p{font-size:16px;line-height:1.5}
+.note p code{background:rgba(14,14,16,.1);padding:.05em .35em;border-radius:4px}
+.calc{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;font:500 15px/1.4 var(--f-code)}
+.calc input,.calc select{font:inherit;width:6ch;background:transparent;border:0;border-bottom:1.5px solid var(--ink);border-radius:0}
+.calc output{font:900 26px/1 var(--f-cast);letter-spacing:-.03em}
+.sources{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:15px}
+.sources a{color:var(--ink);text-underline-offset:4px;text-decoration-thickness:1.5px}
+.colophon{font-size:14px;opacity:.75}
+
+@media (max-width:720px){
+  :root{--dock:40px}
+  .word{top:42%}
+  .clips{left:8vw;right:8vw}
+  .row{grid-template-columns:1fr;gap:4px}
+  .cap h2{font-size:28px}
+  .cap p{font-size:15px}
+  .meter{top:auto;bottom:calc(var(--dock) + 16vh + 40px)}
+  .pipe{left:var(--gl);right:auto;flex-wrap:wrap;bottom:calc(var(--dock) + 16vh + 140px)}
+  .pipe span{font-size:11px;padding:5px 8px}
+  .seg{font-size:10.5px;padding-left:4px}
+  .dk-tc small{display:none}
+}
+</style>
+
+<div class="ground" id="gOrange"><div class="tex"></div></div><div class="ground" id="gCobalt"><div class="tex"></div></div><div class="ground" id="gInk"><div class="tex"></div></div><div class="grain" aria-hidden="true"></div>
+
+<div class="stage" id="stage">
+  <p class="kicker" id="kicker"><b>One GSAP timeline.</b> The page you are scrolling is it.</p>
+  <p class="lede" id="lede">A perfect timeline for cinematic choreography, in vanilla and React, and what every frame of it costs the CPU and GPU.</p>
+  <div class="cam" id="cam">
+  <svg class="thread" id="thread" aria-hidden="true"><g id="ticks"></g><path id="th"/><path id="th2"/><g id="arcs"></g></svg>
+  <h1 class="word" id="word" aria-label="Timeline"><span class="L">T</span><span class="L">I</span><span class="L">M</span><span class="L">E</span><span class="L">L</span><span class="L">I</span><span class="L">N</span><span class="L">E</span></h1>
+
+  <div class="clips" id="clips" aria-hidden="true"></div>
+  <div class="chipset" id="posChips"><span class="chip"><b>"+=0"</b> sequence</span><span class="chip"><b>"&lt;0.06"</b> overlap</span></div>
+
+  <svg class="tchart" id="tchart" aria-hidden="true"></svg>
+  <div id="ghosts" aria-hidden="true"></div>
+  <div class="chipset" id="easeChips"><span class="chip">ease: <b>"none"</b></span><span class="chip">ease: <b>"power2.inOut"</b></span><span class="chip">ease: <b>"expo.out"</b></span><span class="chip">ease: <b>"back.out(1.7)"</b></span></div>
+
+  <div id="glyphs" aria-hidden="true"></div>
+  <div class="chipset" id="stagChips"><span class="chip">from: <b>"center"</b></span><span class="chip">from: <b>"edges"</b></span><span class="chip">from: <b>"random"</b></span></div>
+
+  <div id="dusts" aria-hidden="true"></div>
+  <div class="meter" id="meter"><b id="fps">60</b><span id="ms">16.7 ms per frame</span></div>
+  <div class="pipe" id="pipe"><span data-s="js">JS</span><span data-s="style">Style</span><span data-s="layout">Layout</span><span data-s="paint">Paint</span><span data-s="comp">Composite</span></div>
+  <div class="graph" id="graph"><canvas id="gcv"></canvas></div>
+
+  <div class="rows" id="rows">
+    <div class="row"><span>reverse()</span><div class="mask" id="rowA"></div></div>
+    <div class="row"><span>easeReverse: true</span><div class="mask" id="rowB"></div></div>
+  </div>
+  </div><!-- /cam -->
+
+  <!-- captions, one per chapter, anchors vary -->
+  <div class="cap cap-tl" id="c-pos"><h2>Sequence, then overlap</h2><p>The same jump, eight times. Only the third argument of <code>.to()</code> changes, and the stiff queue turns into one movement.</p></div>
+  <div class="cap cap-tl" id="c-ease"><h2>Ease is spacing</h2><p>Twelve frames of one move. Time ticks evenly; the ease decides where each frame lands. Dense means slow, sparse means fast.</p></div>
+  <div class="cap cap-tr" id="c-stag"><h2>One tween, a whole grid</h2><p>Stagger reads the grid, not the DOM order. One tween, one ScrollTrigger, 112 letters.</p></div>
+  <div class="cap cap-tl" id="c-cost"><h2>What a frame costs</h2><div class="swap"><p id="costA">Every glyph on <code>transform</code>. Style, then straight to the GPU compositor. No layout, no paint.</p><p id="costB" class="alt">Now the same glyphs on <code>left</code> and <code>top</code>, reading <code>offsetLeft</code> after every write. Layout runs once per element, and you can feel it.</p><p id="costC" class="alt">Back on <code>transform</code>. 16.7 ms per frame at 60 Hz, 8.3 ms at 120 Hz, and GSAP runs on the main thread, so keep it free.</p></div></div>
+  <div class="cap cap-bl" id="c-rev"><h2>Reverse is its own shot</h2><p>Reversing <code>expo.out</code> plays it backwards, so the exit crawls like <code>expo.in</code>. With <code>easeReverse</code> (GSAP 3.15) the exit keeps its own curve.</p></div>
+  <div class="cap cap-br" id="c-out"><h2>It was one timeline</h2><p id="outFacts">Eight letters, one thread, one camera, one ScrollTrigger with <code>scrub: 0.8</code>.</p></div>
+</div>
+
+<div class="track" id="track" aria-hidden="true"></div>
+
+<section class="finale" id="finale">
+  <div class="wrap">
+    <h2>Your turn</h2>
+    <p class="sub">Change a value and play it. The position parameter is the whole trick: try <code>"+=0"</code>, then <code>"&lt;0.1"</code>.</p>
+    <form class="cmd" id="cmd" autocomplete="off">tl.to(<span class="s">".cube"</span>, { x: <input id="iX" type="number" value="420" aria-label="x">, rotation: <input id="iR" type="number" value="360" aria-label="rotation">, duration: <input id="iD" type="number" value="0.9" step="0.1" min="0.1" aria-label="duration">, ease: <select id="iE" aria-label="ease"><option>expo.out</option><option>power2.inOut</option><option>back.out(1.7)</option><option>elastic.out(1, 0.4)</option><option>none</option></select> }, <select id="iP" aria-label="position"><option value="&lt;0.1">"&lt;0.1"</option><option value="+=0">"+=0"</option><option value="&lt;">"&lt;"</option><option value="-=0.3">"-=0.3"</option></select>)</form>
+    <div class="cubes" id="cubes"><div class="cube">G</div><div class="cube">S</div><div class="cube">A</div><div class="cube">P</div></div>
+    <div class="btns"><button class="lit" id="run" type="button">Play</button><button class="ghostbtn" id="rew" type="button">Reverse</button></div>
+  </div>
+
+  <div class="wrap">
+    <h2>Take it with you</h2>
+    <div class="tabs" role="tablist" aria-label="Code">
+      <button class="tab" role="tab" aria-selected="true" data-k="scene" type="button">scene.js</button>
+      <button class="tab" role="tab" aria-selected="false" data-k="react" type="button">React / Next</button>
+      <button class="tab" role="tab" aria-selected="false" data-k="scroll" type="button">ScrollTrigger</button>
+      <button class="tab" role="tab" aria-selected="false" data-k="audio" type="button">Sync to audio</button>
+      <button class="tab" role="tab" aria-selected="false" data-k="yours" type="button">Your line</button>
+    </div>
+    <div class="codebox" role="tabpanel"><div class="codehead"><span id="fname">scene.js</span><button class="copy" id="copy" type="button">Copy</button></div><pre id="code"></pre></div>
+  </div>
+
+  <div class="wrap">
+    <h2>Engineering notes</h2>
+    <div class="notes">
+      <div class="note"><h3>Beats are functions</h3><p>Each beat builds and returns a timeline. The master only holds labels and relative positions, so lengthening one beat moves everything after it. No <code>delay</code> for sequencing, ever.</p></div>
+      <div class="note"><h3>Transform and opacity</h3><p>They skip layout and paint and go straight to the compositor. <code>left</code>, <code>top</code>, <code>width</code> re-run layout every frame. <code>clip-path</code> and colour repaint.</p></div>
+      <div class="note"><h3>Layers cost memory</h3><p><code>force3D: "auto"</code> promotes only while tweening. A layer is width × height × DPR² × 4 bytes.</p><div class="calc"><input id="cw" type="number" value="1920" aria-label="width"> × <input id="ch" type="number" value="1080" aria-label="height"> @ <select id="cd" aria-label="DPR"><option>1</option><option selected>2</option><option>3</option></select>x = <output id="cout">31.6 MB</output></div></div>
+      <div class="note"><h3>The main thread</h3><p>GSAP ticks on requestAnimationFrame. A busy main thread (hydration, JSON, analytics) freezes it while CSS transform animations keep running. <code>lagSmoothing(500, 33)</code> hides the jump; use <code>lagSmoothing(0)</code> or drive the timeline from <code>audio.currentTime</code> when syncing to sound.</p></div>
+      <div class="note"><h3>React without the cost</h3><p><code>useGSAP</code> with a <code>scope</code>, timelines in <code>useRef</code>, handlers in <code>contextSafe</code>. Never <code>setState</code> inside <code>onUpdate</code>: write to the DOM through a ref. Strict Mode double-mounts; the revert handles it.</p></div>
+      <div class="note"><h3>Measure, don't guess</h3><p>DevTools Performance with 4–6× CPU throttling, Paint flashing and Layer borders, then a real mid-range Android. The Long Animation Frames API reports frames over 50 ms with script attribution (Chrome and Edge 123+).</p></div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="sources">
+      <a href="https://gsap.com/blog/3-15/" target="_blank" rel="noopener">GSAP 3.15: easeReverse</a>
+      <a href="https://gsap.com/docs/v3/GSAP/Timeline/" target="_blank" rel="noopener">Timeline docs</a>
+      <a href="https://gsap.com/docs/v3/Plugins/ScrollTrigger/" target="_blank" rel="noopener">ScrollTrigger</a>
+      <a href="https://gsap.com/resources/React" target="_blank" rel="noopener">GSAP + React</a>
+      <a href="https://gsap.com/docs/v3/GSAP/gsap.ticker/" target="_blank" rel="noopener">gsap.ticker</a>
+      <a href="https://web.dev/stick-to-compositor-only-properties-and-manage-layer-count/" target="_blank" rel="noopener">web.dev: compositor layers</a>
+      <a href="https://developer.chrome.com/docs/web-platform/long-animation-frames" target="_blank" rel="noopener">Long Animation Frames API</a>
+    </div>
+    <p class="colophon">Versions checked on npm, 22 Oct 2026: gsap 3.15.0, @gsap/react 2.1.2. This page runs gsap 3.15.0 with ScrollTrigger, SplitText, DrawSVG, MorphSVG and MotionPath.</p>
+  </div>
+</section>
+
+<nav class="dock" id="dock" aria-label="Master timeline">
+  <div class="dk-tc"><span id="tc">00:00</span> <small>s:fr</small></div>
+  <div class="dk-line" id="dkLine"><div id="segs"></div><div class="dk-ph" id="ph"><b tabindex="0" role="slider" aria-label="Playhead" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="knob"></b></div></div>
+</nav>
+
+<!-- ============ code ============ -->
+<script type="text/plain" id="k-scene">// scene.js: a beat is a function that BUILDS and RETURNS a timeline
+import { gsap } from "gsap";
+
+export const MOTION = {
+  enter: { duration: 0.9, ease: "expo.out", easeReverse: true }, // 3.15+
+  exit:  { duration: 0.55, ease: "expo.in" },                    // ~40% shorter
+};
+
+const jump = (el) => gsap.timeline()
+  .to(el, { yPercent: -55, rotation: -8, duration: 0.18, ease: "power2.out" })
+  .to(el, { yPercent: 0, rotation: 0, duration: 0.18, ease: "power2.in" });
+
+export function beatWave(letters, position = "<0.06") {
+  const tl = gsap.timeline();
+  letters.forEach((l, i) => tl.add(jump(l), i ? position : 0)); // "+=0" = queue
+  return tl;
+}
+
+// The master is the script: labels and relative positions only.
+export function buildMaster(q) {
+  return gsap.timeline({ paused: true })
+    .add(beatWave(q(".L"), "+=0"), "position")
+    .add(beatWave(q(".L"), "<0.06"), ">0.4")
+    .addLabel("ease", ">0.6")
+    .add(beatEase(q), "ease")
+    .addLabel("stagger", ">0.4")
+    .add(beatGrid(q), "stagger");
+}</script>
+<script type="text/plain" id="k-react">// Timeline.tsx: React 19 / Next.js App Router
+"use client";
+import { useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+import { buildMaster } from "./scene";
+
+gsap.registerPlugin(useGSAP, ScrollTrigger);
+
+export function OneTimeline() {
+  const root = useRef<HTMLDivElement>(null);
+  const tc = useRef<HTMLSpanElement>(null);
+
+  useGSAP(() => {
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const master = buildMaster(gsap.utils.selector(root));
+      ScrollTrigger.create({
+        animation: master,
+        trigger: root.current,
+        start: "top top",
+        end: () => "+=" + master.duration() * 45 + "%",
+        pin: true,
+        scrub: 0.8,
+        // never setState here: 60-120 renders a second. Write through a ref.
+        onUpdate: () => { tc.current!.textContent = master.time().toFixed(2); },
+      });
+    });
+    return () => mm.revert(); // kills tweens, ScrollTriggers, inline styles
+  }, { scope: root });
+
+  return <div ref={root}>{/* stage */}<span ref={tc} /></div>;
+}</script>
+<script type="text/plain" id="k-scroll">// One master, one ScrollTrigger. Never put ScrollTriggers on nested tweens.
+gsap.registerPlugin(ScrollTrigger);
+
+const master = buildMaster(gsap.utils.selector(".stage"));
+
+ScrollTrigger.create({
+  animation: master,
+  trigger: ".track",
+  start: "top top",
+  end: "bottom bottom",
+  scrub: 0.8,             // 0.8 s catch-up: smoothing without a scroll library
+  invalidateOnRefresh: true,
+});
+
+// Labels double as navigation: jump to a chapter
+const st = ScrollTrigger.getAll()[0];
+const goTo = (label) => scrollTo(0, st.start + (master.labels[label] / master.duration()) * (st.end - st.start));
+
+document.fonts.ready.then(() => ScrollTrigger.refresh()); // refresh after fonts, not on every resize</script>
+<script type="text/plain" id="k-audio">// When the music is the clock, the timeline only follows it.
+const audio = document.querySelector("audio");
+const master = buildMaster(gsap.utils.selector(".stage")); // paused
+
+const BAR = (4 * 60) / 92;        // 92 BPM, one 4/4 bar in seconds
+master.addLabel("drop", BAR * 8);  // beats land on bars
+
+gsap.ticker.add(() => {
+  if (!audio.paused) master.time(Math.min(audio.currentTime, master.duration()));
+});
+audio.addEventListener("seeked", () => master.time(audio.currentTime));</script>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/SplitText.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/DrawSVGPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/MorphSVGPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/MotionPathPlugin.min.js"></script>
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const pad = (n) => String(Math.max(0, Math.floor(n))).padStart(2, "0");
+  if (!window.gsap || !window.ScrollTrigger || !window.DrawSVGPlugin || !window.MorphSVGPlugin || !window.MotionPathPlugin) return;
+  gsap.registerPlugin(ScrollTrigger, DrawSVGPlugin, MorphSVGPlugin, MotionPathPlugin);
+  if (window.SplitText) gsap.registerPlugin(SplitText);
+  const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const WORD = "TIMELINE";
+  const stage = $("#stage"), letters = $$("#word .L");
+
+  /* ---------- code panel ---------- */
+  const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const RX = /(\/\/[^\n]*|\{\/\*.*?\*\/\})|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\\n]|\\.)*`)|\b(const|let|function|return|import|from|export|if|new|true|false|null|of|for)\b|\b(\d+(?:\.\d+)?)\b/g;
+  const hl = code => code.split("\n").map(line => { let o = "", last = 0, m; RX.lastIndex = 0; while ((m = RX.exec(line))) { o += esc(line.slice(last, m.index)); o += `<span class="tok-${m[1] ? "c" : m[2] ? "s" : m[3] ? "k" : "n"}">${esc(m[0])}</span>`; last = RX.lastIndex; } return o + esc(line.slice(last)); }).join("\n");
+  const src = id => document.getElementById(id).textContent.replace(/^\n/, "").replace(/\s+$/, "");
+  const v = id => $(id).value;
+  const yours = () => `const tl = gsap.timeline();\ngsap.utils.toArray(".cube").forEach((cube, i) => {\n  tl.to(cube, { x: ${+v("#iX") || 0}, rotation: ${+v("#iR") || 0}, duration: ${+v("#iD") || 0.9}, ease: "${v("#iE")}" }, i ? "${v("#iP")}" : 0);\n});`;
+  const FILES = { scene: ["scene.js", () => src("k-scene")], react: ["Timeline.tsx", () => src("k-react")], scroll: ["scroll.js", () => src("k-scroll")], audio: ["audio.js", () => src("k-audio")], yours: ["your-line.js", yours] };
+  let tab = "scene";
+  const showTab = k => { tab = k; $$(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.k === k))); $("#fname").textContent = FILES[k][0]; $("#code").innerHTML = hl(FILES[k][1]()); };
+  $$(".tab").forEach(t => t.addEventListener("click", () => showTab(t.dataset.k)));
+  showTab("scene");
+  $("#copy").addEventListener("click", e => { const b = e.currentTarget, done = m => { b.textContent = m; setTimeout(() => b.textContent = "Copy", 1400); }; try { navigator.clipboard.writeText(FILES[tab][1]()).then(() => done("Copied"), () => done("Select it")); } catch (_) { done("Select it"); } });
+
+  /* ---------- layer calculator ---------- */
+  const calc = () => { const mb = (+v("#cw") || 0) * (+v("#ch") || 0) * (+v("#cd")) ** 2 * 4 / 1048576; $("#cout").textContent = mb.toFixed(1) + " MB"; };
+  ["#cw", "#ch", "#cd"].forEach(id => $(id).addEventListener("input", calc)); calc();
+
+  /* ---------- your turn ---------- */
+  const cubes = $$("#cubes .cube"); let ytl = null;
+  function buildYours(){
+    if (ytl) ytl.kill(); gsap.set(cubes, { x: 0, rotation: 0 });
+    const W = Math.max(0, $("#cubes").clientWidth - cubes[0].offsetWidth);
+    ytl = gsap.timeline({ paused: true });
+    cubes.forEach((c, i) => ytl.to(c, { x: Math.min(+v("#iX") || 0, W), rotation: +v("#iR") || 0, duration: Math.max(0.1, +v("#iD") || 0.9), ease: v("#iE") }, i ? v("#iP") : 0));
+    if (tab === "yours") showTab("yours");
+  }
+  const play = () => { buildYours(); ytl.timeScale(1).restart(); };
+  $("#cmd").addEventListener("input", buildYours); $("#cmd").addEventListener("change", buildYours);
+  $("#cmd").addEventListener("submit", e => { e.preventDefault(); play(); });
+  $("#cmd").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); play(); } });
+  $("#run").addEventListener("click", play);
+  $("#rew").addEventListener("click", () => { if (!ytl) return; if (ytl.progress() === 0) ytl.progress(1); ytl.timeScale(1.5).reverse(); });
+  buildYours();
+
+  /* ---------- cast & props (created once) ---------- */
+  const clipsEl = $("#clips");
+  clipsEl.innerHTML = letters.map((_, i) => `<i style="top:${i * 11}px"></i>`).join("");
+  const clips = $$("i", clipsEl);
+  const GH = 12;
+  $("#ghosts").innerHTML = Array.from({ length: GH }, () => `<span class="ghost">E</span>`).join("");
+  const ghosts = $$("#ghosts .ghost");
+  const mob = () => innerWidth <= 720;
+  let COLS = 16, ROWS = 7;
+  function makeGlyphs(){ COLS = mob() ? 8 : 16; ROWS = mob() ? 11 : 7; $("#glyphs").innerHTML = Array.from({ length: COLS * ROWS }, (_, i) => `<span class="glyph">${WORD[i % 8]}</span>`).join(""); return $$("#glyphs .glyph"); }
+  let glyphs = makeGlyphs();
+  const ND = 240;
+  $("#dusts").innerHTML = Array.from({ length: ND }, () => `<i class="dust"></i>`).join("");
+  const dusts = $$("#dusts .dust");
+  $("#rowA").innerHTML = [...WORD].map(c => `<i>${c}</i>`).join("");
+  $("#rowB").innerHTML = [...WORD].map(c => `<i>${c}</i>`).join("");
+  const EASES = ["none", "power2.inOut", "expo.out", "back.out(1.7)"];
+  const cam = $("#cam"), th = $("#th"), th2 = $("#th2"), SVGNS = "http://www.w3.org/2000/svg";
+
+  /* captions are split into masked lines once; every caption enters and leaves line by line */
+  let splits = [];
+  function splitText(){
+    splits.forEach(s => s.revert());
+    splits = window.SplitText ? $$(".cap h2, .cap p, #kicker, #lede").map(el => SplitText.create(el, { type: "lines", mask: "lines", linesClass: "ln" })) : [];
+  }
+
+  /* ---------- particle field (ticker-driven, blended by the master) ---------- */
+  const F = { k: 0, k2: 0, on: false, mode: "transform" };
+  let base = [], lctr = [], orb = [], W = 0, H = 0, GG = {};
+  let setDX = [], setDY = [];
+  function fieldGeometry(){
+    W = innerWidth; H = innerHeight;
+    const gw = Math.min(W * 0.9, 1400), gh = H * (mob() ? 0.56 : 0.5), cw = gw / COLS, chh = gh / ROWS, x0 = (W - gw) / 2, y0 = H * 0.46 - gh / 2;
+    GG = { x0, y0, gw, gh, cw };
+    const fs = Math.min(cw, chh) * 0.78;
+    base = glyphs.map((g, i) => { const c = i % COLS, r = Math.floor(i / COLS); const x = x0 + c * cw + cw / 2 - fs * 0.38, y = y0 + r * chh + chh / 2 - fs * 0.5; g.style.fontSize = fs + "px"; g.style.left = x + "px"; g.style.top = y + "px"; return { x, y }; });
+    lctr = letters.map(l => { const r = l.getBoundingClientRect(); return { x: r.left + r.width / 2 - gsap.getProperty(l, "x"), y: r.top + r.height / 2 - gsap.getProperty(l, "y") }; });
+    orb = glyphs.concat(dusts).map((_, i) => ({ a: i * 2.399, r: 0.18 + ((i * 37) % 100) / 125, s: 0.35 + ((i * 13) % 10) / 14 }));
+    dusts.forEach(d => { d.style.left = W / 2 + "px"; d.style.top = H / 2 + "px"; });
+    setDX = dusts.map(g => gsap.quickSetter(g, "x", "px")); setDY = dusts.map(g => gsap.quickSetter(g, "y", "px"));
+  }
+  function setMode(m){
+    if (m === F.mode) return; F.mode = m;
+    const lay = m === "layout";
+    if (lay) { gsap.set(glyphs, { x: 0, y: 0 }); gsap.set(dusts, { x: 0, y: 0 }); }
+    else { glyphs.forEach((g, i) => { g.style.left = base[i].x + "px"; g.style.top = base[i].y + "px"; }); dusts.forEach(d => { d.style.left = W / 2 + "px"; d.style.top = H / 2 + "px"; }); }
+    const onS = lay ? ["js", "style", "layout", "paint", "comp"] : ["js", "style", "comp"];
+    $$("#pipe span").forEach(s => { s.classList.toggle("on", onS.includes(s.dataset.s)); s.classList.toggle("hot", lay && (s.dataset.s === "layout" || s.dataset.s === "paint")); });
+  }
+  const hist = new Array(140).fill(16.7); let ema = 16.7;
+  const cv = $("#gcv"), cx2 = cv.getContext("2d");
+  function sizeCanvas(){ const r = devicePixelRatio || 1; cv.width = Math.max(1, cv.clientWidth * r); cv.height = Math.max(1, cv.clientHeight * r); cx2.setTransform(r, 0, 0, r, 0, 0); }
+  function drawGraph(){
+    const w = cv.clientWidth, h = cv.clientHeight, bw = w / hist.length, max = 60, yl = h - 16.7 / max * h;
+    cx2.clearRect(0, 0, w, h);
+    for (let i = 0; i < hist.length; i++) { const val = Math.min(hist[i], max), bh = Math.max(2, val / max * h); cx2.fillStyle = hist[i] > 17.5 ? "#FF4A1C" : "rgba(246,243,238,.8)"; cx2.fillRect(i * bw + 1, h - bh, Math.max(1, bw - 2.5), bh); }
+    // the budget line itself is the SVG thread; the canvas only labels it
+    cx2.fillStyle = "#F6F3EE"; cx2.font = "600 12px Instrument Sans, sans-serif"; cx2.fillText("16.7 ms budget", 0, yl - 9);
+  }
+  let fpsT = 0;
+  gsap.ticker.add((time, dt) => {
+    hist.push(dt); hist.shift(); ema += (dt - ema) * 0.12;
+    if (!F.on) return;
+    const t = RM ? 0 : time * 0.55, cx = W / 2, cy = H * 0.46, R = Math.min(W, H) * 0.46;
+    const all = glyphs.length, k = F.k, k2 = F.k2;
+    if (F.mode === "layout") {
+      const t0 = performance.now(); let acc = 0;
+      for (let i = 0; i < all + ND; i++) {
+        const q = orb[i], a = q.a + t * q.s, ox = cx + Math.cos(a) * q.r * R * 1.5, oy = cy + Math.sin(a * 1.2) * q.r * R;
+        if (i < all) { const g = glyphs[i], b = base[i]; g.style.left = (b.x + (ox - b.x) * k) + "px"; g.style.top = (b.y + (oy - b.y) * k) + "px"; acc += g.offsetLeft; }
+        else { const d = dusts[i - all]; d.style.left = ox + "px"; d.style.top = oy + "px"; acc += d.offsetLeft; }
+        if (performance.now() - t0 > 44) break;
+      }
+      stage.dataset.acc = acc;
+    } else {
+      for (let i = 0; i < all; i++) {
+        const q = orb[i], a = q.a + t * q.s, b = base[i], l = lctr[i % 8];
+        const ox = cx + Math.cos(a) * q.r * R * 1.5, oy = cy + Math.sin(a * 1.2) * q.r * R;
+        let x = b.x + (ox - b.x) * k, y = b.y + (oy - b.y) * k;
+        x += (l.x - x) * k2; y += (l.y - y) * k2;
+        setGX(i, x - b.x); setGY(i, y - b.y);
+      }
+      for (let j = 0; j < ND; j++) {
+        const q = orb[all + j], a = q.a + t * q.s, l = lctr[j % 8];
+        let x = cx + Math.cos(a) * q.r * R * 1.5, y = cy + Math.sin(a * 1.2) * q.r * R;
+        x += (l.x - x) * k2; y += (l.y - y) * k2;
+        setDX[j](x - W / 2); setDY[j](y - H / 2);
+      }
+    }
+    if ((fpsT += dt) > 120) { fpsT = 0; $("#fps").textContent = Math.round(1000 / ema); $("#ms").textContent = ema.toFixed(1) + " ms per frame"; }
+    drawGraph();
+  });
+  let setGXi = [], setGYi = [];
+  function setGX(i, v){ setGXi[i](v); } function setGY(i, v){ setGYi[i](v); }
+
+  /* ---------- MASTER TIMELINE (the page) ---------- */
+  let master = null, st = null, OP = null, booted = false;
+  const NAMES = { intro: "Intro", position: "Position", ease: "Ease", stagger: "Stagger", cost: "Frame cost", reverse: "Reverse", outro: "Outro" };
+  const f1 = n => n.toFixed(1);
+  const lineD = (x1, y1, x2, y2) => `M${f1(x1)},${f1(y1)} L${f1(x2)},${f1(y2)}`;
+  const polyD = pts => pts.map((p, i) => (i ? "L" : "M") + f1(p[0]) + "," + f1(p[1])).join(" ");
+  const frac = n => { const s = Math.sin(n * 12.9898) * 43758.5453; return s - Math.floor(s); };
+  // camera: scale + roll about a pivot, with transform-origin 0 0
+  const Z = (s, deg, px, py) => { const r = deg * Math.PI / 180, c = Math.cos(r), n = Math.sin(r); return { scale: s, rotation: deg, x: px - s * (c * px - n * py), y: py - s * (n * px + c * py) }; };
+
+  function build(){
+    const keep = st ? st.progress : 0;
+    if (OP) { OP.progress(1).kill(); OP = null; }
+    if (st) st.kill(); if (master) master.kill();
+    gsap.set([cam, clipsEl, ghosts, glyphs, dusts, "#tchart", ".chip", ".cap", "#meter", "#graph", "#pipe", "#rows", "#rows .mask i", "#costA", "#costB", "#costC", th, th2, "#knob", ".tex", "#kicker", "#lede"], { clearProps: "all" });
+    gsap.set(".ln", { clearProps: "transform" });
+    gsap.set(["#gCobalt", "#gInk"], { y: 0, yPercent: 100, opacity: 1 }); gsap.set(stage, { "--fg": "#0E0E10" }); gsap.set(cam, { transformOrigin: "0 0" });
+    F.k = 0; F.k2 = 0; F.on = false; setMode("transform");
+    gsap.set(letters, { clearProps: "all" });
+    const lr = letters.map(l => l.getBoundingClientRect()), wr = $("#word").getBoundingClientRect();
+    fieldGeometry(); setGXi = setGX_arr(); setGYi = setGY_arr(); sizeCanvas();
+    const VW = innerWidth, VH = innerHeight, LW = lr[7].width;
+    const SC = 0.5, LWs = LW * SC, fsz = parseFloat(getComputedStyle($("#word")).fontSize) * SC, off = LW * (1 - SC) / 2;
+    const wcx = wr.left + wr.width / 2, wcy = wr.top + wr.height / 2;
+    const JD = 0.55;
+
+    /* --- geometry of every shape the thread will take --- */
+    const svg = $("#thread"); svg.setAttribute("width", VW); svg.setAttribute("height", VH); svg.setAttribute("viewBox", `0 0 ${VW} ${VH}`);
+    const ul = wr.bottom + 16;
+    const underD = lineD(wr.left, ul, wr.right, ul);
+    gsap.set(clipsEl, { top: wr.bottom + 34 });
+    const cr = clipsEl.getBoundingClientRect(), segW = cr.width / 8;
+    clips.forEach((c, i) => gsap.set(c, { width: segW - 4, x: i * segW }));
+    const axisD = lineD(cr.left, wr.bottom + 34 + 7 * 11 + 20, cr.right, wr.bottom + 34 + 7 * 11 + 20);
+    gsap.set("#posChips", { left: wr.left, top: wr.top - 54 });
+
+    const x0 = Math.max(16, VW * 0.06), x1 = VW - x0 - LWs;
+    ghosts.forEach(g => gsap.set(g, { top: lr[7].bottom - lr[7].height * SC, left: 0, fontSize: fsz + "px" }));
+    const ePos = e => ghosts.map((_, i) => x0 + gsap.parseEase(e)(i / (GH - 1)) * (x1 - x0));
+    gsap.set("#easeChips", { left: x0, top: lr[7].bottom - lr[7].height * SC - 58 });
+    const chartTop = lr[7].bottom + 14, chartH = Math.max(80, VH - chartTop - 120);
+    const EX = (e, t) => x0 + LWs / 2 + gsap.parseEase(e)(t) * (x1 - x0), EY = t => chartTop + t * chartH;
+    const curveD = e => polyD(Array.from({ length: 61 }, (_, s) => [EX(e, s / 60), EY(s / 60)]));
+    const tc = $("#tchart"); tc.setAttribute("width", VW); tc.setAttribute("height", VH); gsap.set(tc, { left: 0, top: 0 });
+    tc.innerHTML = Array.from({ length: GH }, (_, i) => { const t = i / (GH - 1), x = EX("none", t), y = EY(t); return `<g class="fr"><line x1="${f1(x)}" y1="${f1(lr[7].bottom - 6)}" x2="${f1(x)}" y2="${f1(y)}"/><circle cx="${f1(x)}" cy="${f1(y)}" r="3.5"/></g>`; }).join("");
+    const frs = $$("#tchart .fr"), dLines = $$("#tchart line"), dDots = $$("#tchart circle");
+
+    const chipsTop = GG.y0 + GG.gh + 14, pTop = chipsTop + 50, pH = Math.max(24, Math.min(56, VH - (mob() ? 40 : 44) - 22 - pTop));
+    gsap.set("#stagChips", { right: "auto", left: GG.x0, top: chipsTop });
+    const mC = (COLS - 1) / 2;
+    const prof = { center: c => Math.abs(c - mC) / mC, edges: c => 1 - Math.abs(c - mC) / mC, random: c => frac(c + 3) };
+    const profD = from => polyD(Array.from({ length: COLS }, (_, c) => [GG.x0 + c * GG.cw + GG.cw / 2, pTop + prof[from](c) * pH]));
+
+    const gr = $("#graph").getBoundingClientRect(), yl = gr.bottom - 16.7 / 60 * gr.height;
+    const budgetD = lineD(gr.left, yl, gr.right, yl);
+    const jagD = polyD(Array.from({ length: 37 }, (_, i) => [gr.left + i / 36 * gr.width, i % 3 === 1 ? yl - (0.35 + frac(i) * 0.9) * gr.height : yl - frac(i + 9) * 5]));
+
+    gsap.set("#rows", { top: wr.bottom + 36 });
+    const ra = $("#rowA").getBoundingClientRect(), rb = $("#rowB").getBoundingClientRect();
+    const lineA = lineD(ra.left, ra.bottom + 2, ra.right, ra.bottom + 2), lineB = lineD(rb.left, rb.bottom + 2, rb.right, rb.bottom + 2);
+
+    const dockY = VH - (mob() ? 20 : 22);
+    const arcs = letters.map((l, i) => {
+      const sx = lr[i].left + lr[i].width / 2, sy = lr[i].bottom, ex = VW * (0.12 + i * 0.1), ey = dockY;
+      const cx = (sx + ex) / 2 + (i - 3.5) * VW * 0.02, cy = Math.min(sy, ey) - VH * (0.2 + 0.025 * Math.abs(i - 3.5));
+      return { d: `M${f1(sx)},${f1(sy)} Q${f1(cx)},${f1(cy)} ${f1(ex)},${f1(ey)}`, m: `M0,0 Q${f1(cx - sx)},${f1(cy - sy)} ${f1(ex - sx)},${f1(ey - sy)}` };
+    });
+    $("#arcs").innerHTML = arcs.map(a => `<path d="${a.d}"/>`).join("");
+    const arcEls = $$("#arcs path");
+
+    th.setAttribute("d", underD); th2.setAttribute("d", lineB);
+    gsap.set(th, { drawSVG: "0% 100%" }); gsap.set([th2, ...arcEls], { drawSVG: "0% 0%" });
+
+    /* --- helpers that keep every move inside one grammar --- */
+    const Q = gsap.timeline({ paused: true, defaults: { ease: "none" } });
+    const L = sel => $$(sel + " .ln");
+    const capIn = (id, at, body) => { const ls = $$(`${id} h2 .ln, ${id} > p .ln`).concat(body ? L(body) : []); Q.set(id, { autoAlpha: 1 }, at).fromTo(ls, { yPercent: 118 }, { yPercent: 0, duration: 0.65, ease: "expo.out", stagger: 0.06, immediateRender: false }, at); };
+    const capOut = (id, at) => { Q.to(L(id), { yPercent: -118, duration: 0.4, ease: "power3.in", stagger: 0.025 }, at).set(id, { autoAlpha: 0 }, at + 0.6); };
+    const swapLines = (a, b, at) => { Q.to(L(a), { yPercent: -118, duration: 0.35, ease: "power3.in", stagger: 0.03 }, at).set(b, { opacity: 1 }, at + 0.3).fromTo(L(b), { yPercent: 118 }, { yPercent: 0, duration: 0.6, ease: "expo.out", stagger: 0.05, immediateRender: false }, at + 0.3); };
+    const chipIn = (el, at) => Q.fromTo(el, { opacity: 1, yPercent: 150 }, { yPercent: 0, duration: 0.5, ease: "expo.out", immediateRender: false }, at);
+    const chipOut = (el, at) => Q.to(el, { yPercent: -150, duration: 0.3, ease: "power3.in" }, at);
+    const drawIn = (el, at, d, ease) => Q.fromTo(el, { drawSVG: "0% 0%" }, { drawSVG: "0% 100%", duration: d, ease, immediateRender: false }, at);
+    const undash = (el, at) => Q.set(el, { strokeDasharray: "none", strokeDashoffset: 0 }, at);
+    const shot = (s, deg, px, py, at, d, ease) => Q.to(cam, { ...Z(s, deg, px, py), duration: d, ease }, at);
+    // a jump with weight: anticipation, stretch, fall, squash, settle
+    const jump = el => gsap.timeline()
+      .to(el, { scaleY: 0.78, scaleX: 1.14, duration: 0.07, ease: "power2.out" })
+      .to(el, { yPercent: -52, scaleY: 1.1, scaleX: 0.93, rotation: -6, duration: 0.17, ease: "power3.out" })
+      .to(el, { yPercent: 0, scaleY: 1, scaleX: 1, rotation: 0, duration: 0.15, ease: "power2.in" })
+      .to(el, { scaleY: 0.84, scaleX: 1.1, duration: 0.05, ease: "power1.out" })
+      .to(el, { scaleY: 1, scaleX: 1, duration: 0.11, ease: "back.out(3)" });
+    const chips = sel => $$(sel + " .chip");
+    const pc = chips("#posChips"), ec = chips("#easeChips"), sc = chips("#stagChips");
+
+    /* INTRO: the word sits on its own timeline; the camera leans in */
+    Q.addLabel("intro", 0);
+    Q.to(L("#kicker").concat(L("#lede")), { yPercent: -118, duration: 0.45, ease: "power3.in", stagger: 0.04 }, 0.25);
+    const pL = wr.left + wr.width * 0.2, pR = wr.left + wr.width * 0.8;
+    shot(1.06, 0, pL, wcy, 0, 1.3, "power2.inOut");
+
+    /* POSITION: the ruler becomes a time axis; same jump, sequenced then overlapped */
+    const tP = 0.9; Q.addLabel("position", tP);
+    capIn("#c-pos", tP);
+    Q.to(th, { morphSVG: axisD, duration: 0.7, ease: "power3.inOut" }, tP);
+    Q.fromTo(clipsEl, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2 }, tP + 0.3)
+      .fromTo(clips, { scaleX: 0, transformOrigin: "0 50%" }, { scaleX: 1, duration: 0.4, stagger: 0.04, ease: "expo.out" }, tP + 0.35);
+    chipIn(pc[0], tP + 0.4);
+    const seq = gsap.timeline(); letters.forEach((l, i) => seq.add(jump(l), i ? "+=0" : 0));
+    Q.add(seq, tP + 0.8);
+    shot(1.06, 0, pR, wcy, tP + 0.8, seq.duration(), "sine.inOut");      // the camera follows the queue
+    const tS = tP + 0.8 + seq.duration();
+    Q.to(clips, { x: i => i * (0.06 / JD) * segW, duration: 0.7, ease: "expo.inOut" }, tS + 0.2);
+    chipOut(pc[0], tS + 0.2); chipIn(pc[1], tS + 0.35);
+    const ovl = gsap.timeline(); letters.forEach((l, i) => ovl.add(jump(l), i ? "<0.06" : 0));
+    const ovl2 = gsap.timeline(); letters.forEach((l, i) => ovl2.add(jump(l), i ? "<0.06" : 0));
+    Q.add(ovl, tS + 1.0).add(ovl2, tS + 2.1);
+    shot(1.09, 0, wcx, wcy, tS + 0.6, 2.2, "power2.inOut");              // and pushes in as it turns into one wave
+
+    /* EASE: match cut. Push into the E until it fills the frame, cut, pull back onto a plot */
+    const tE = tS + 3.4; Q.addLabel("ease", tE);
+    capOut("#c-pos", tE); chipOut(pc[1], tE);
+    Q.to(clipsEl, { autoAlpha: 0, duration: 0.25 }, tE);
+    Q.to(letters.slice(0, 7), { yPercent: 170, rotation: i => [-16, 10, -7, 13, -11, 8, -13][i], autoAlpha: 0, duration: 0.55, ease: "power3.in", stagger: { each: 0.04, from: "end" } }, tE);
+    Q.to(letters[7], { scaleY: 0.86, scaleX: 1.08, duration: 0.3, ease: "power2.out" }, tE + 0.05);
+    const ecx = lr[7].left + lr[7].width / 2, ecy = lr[7].top + lr[7].height * 0.52;
+    shot(9, 0, ecx, ecy, tE + 0.1, 0.6, "power4.in");
+    const tC = tE + 0.7;
+    const ecx2 = x0 + LWs / 2, ecy2 = lr[7].bottom - lr[7].height * SC * 0.48;
+    Q.set("#gCobalt", { yPercent: 0 }, tC).set(stage, { "--fg": "#F6F3EE" }, tC)
+      .set(letters[7], { x: x0 - lr[7].left - off, scale: SC }, tC)
+      .set("#tchart", { autoAlpha: 1 }, tC)
+      .fromTo(cam, Z(9 / SC, 0, ecx2, ecy2), { ...Z(1, 0, ecx2, ecy2), duration: 1.0, ease: "expo.out", immediateRender: false }, tC);
+    Q.set(th, { morphSVG: curveD(EASES[0]) }, tC);
+    drawIn(th, tC + 0.45, 0.75, "none"); undash(th, tC + 1.25);           // time runs down the page
+    Q.fromTo(ghosts, { x: x0, autoAlpha: 0 }, { x: i => ePos(EASES[0])[i], autoAlpha: 0.3, duration: 0.7, ease: "expo.out", stagger: 0.03 }, tC + 0.4)
+      .fromTo(frs, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.15, stagger: 0.05, immediateRender: false }, tC + 0.5);
+    capIn("#c-ease", tC + 0.5); chipIn(ec[0], tC + 0.6);
+    EASES.forEach((e, k) => {
+      const tA = tC + 1.3 + k * 1.45;
+      if (k > 0) {
+        const xs = Array.from({ length: GH }, (_, i) => EX(e, i / (GH - 1)));
+        Q.to(th, { morphSVG: curveD(e), duration: 0.55, ease: "power3.inOut" }, tA)
+          .to(dDots, { attr: { cx: i => xs[i] }, duration: 0.55, ease: "power3.inOut", stagger: 0.015 }, tA)
+          .to(dLines, { attr: { x1: i => xs[i], x2: i => xs[i] }, duration: 0.55, ease: "power3.inOut", stagger: 0.015 }, tA)
+          .to(ghosts, { x: i => ePos(e)[i], duration: 0.55, ease: "power3.inOut", stagger: 0.015 }, tA);
+        chipOut(ec[k - 1], tA); chipIn(ec[k], tA + 0.1);
+      }
+      Q.fromTo(letters[7], { x: x0 - lr[7].left - off }, { x: x1 - lr[7].left - off, duration: 0.9, ease: e, immediateRender: false }, tA + 0.5);
+    });
+
+    /* STAGGER: the frames collapse, the camera ducks in, the grid erupts as it pulls out */
+    const tG = tC + 1.3 + 4 * 1.45 + 0.05; Q.addLabel("stagger", tG);
+    capOut("#c-ease", tG); chipOut(ec[3], tG);
+    Q.to(th, { drawSVG: "100% 100%", duration: 0.45, ease: "power2.in" }, tG)
+      .to(frs, { autoAlpha: 0, duration: 0.25, stagger: { each: 0.02, from: "end" } }, tG)
+      .to(ghosts.concat(letters[7]), { autoAlpha: 0, scale: 0.3, duration: 0.45, ease: "power3.in", stagger: { each: 0.02, from: "end" } }, tG);
+    const gcx = GG.x0 + GG.gw / 2, gcy = GG.y0 + GG.gh / 2;
+    shot(1.14, -3, gcx, gcy, tG, 0.5, "power2.in");
+    shot(1, 0, gcx, gcy, tG + 0.5, 1.1, "expo.out");
+    Q.fromTo(glyphs, { autoAlpha: 0, scale: 0 }, { autoAlpha: 1, scale: 1, duration: 0.8, ease: "expo.out", stagger: { grid: [ROWS, COLS], from: "center", amount: 0.5 } }, tG + 0.5);
+    capIn("#c-stag", tG + 0.7);
+    Q.set(th, { morphSVG: profD("center") }, tG + 0.5);
+    drawIn(th, tG + 1.0, 0.6, "power2.inOut"); undash(th, tG + 1.65);   // the delay of every column, drawn
+    ["center", "edges", "random"].forEach((from, k) => {
+      const tW = tG + 1.3 + k * 1.3;
+      if (k) { chipOut(sc[k - 1], tW - 0.05); Q.to(th, { morphSVG: profD(from), duration: 0.45, ease: "power3.inOut" }, tW - 0.1); }
+      chipIn(sc[k], tW);
+      Q.to(glyphs, { scale: 0.3, rotation: k === 1 ? -90 : 90, duration: 0.45, ease: "power2.in", stagger: { grid: [ROWS, COLS], from, amount: 0.55 } }, tW)
+        .to(glyphs, { scale: 1, rotation: 0, duration: 0.6, ease: "back.out(2.2)", stagger: { grid: [ROWS, COLS], from, amount: 0.55 } }, tW + 0.45);
+      shot(1.035, 0, gcx, gcy, tW + 0.35, 0.35, "power2.out");
+      shot(1, 0, gcx, gcy, tW + 0.7, 0.6, "power2.inOut");
+    });
+
+    /* HUSH: authored silence before the peak */
+    const tH = tG + 5.6;
+    capOut("#c-stag", tH); chipOut(sc[2], tH);
+    Q.to(th, { drawSVG: "0% 0%", duration: 0.5, ease: "power2.in" }, tH)
+      .to(glyphs, { scale: 0.62, autoAlpha: 0.22, duration: 0.8, ease: "power2.inOut", stagger: { grid: [ROWS, COLS], from: "edges", amount: 0.3 } }, tH + 0.1);
+
+    /* COST (the peak): hard cut to ink, the field bursts; the thread is the frame budget */
+    const tK = tH + 1.5; Q.addLabel("cost", tK);
+    Q.set("#gInk", { yPercent: 0 }, tK).set(stage, { "--fg": "#F6F3EE" }, tK)
+      .set(glyphs, { autoAlpha: 1, scale: 0.7 }, tK).set(dusts, { autoAlpha: 1 }, tK)
+      .to(F, { k: 1, duration: 1.0, ease: "expo.out" }, tK)
+      .fromTo(["#meter", "#graph", "#pipe"], { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "expo.out", stagger: 0.08, immediateRender: false }, tK + 0.45);
+    capIn("#c-cost", tK + 0.35, "#costA");
+    Q.set(th, { morphSVG: budgetD }, tK + 0.1);
+    drawIn(th, tK + 0.8, 0.7, "power2.inOut"); undash(th, tK + 1.55);
+    const tLI = tK + 2.4, tLO = tK + 5.0;
+    Q.addLabel("layoutIn", tLI).addLabel("layoutOut", tLO);
+    Q.to(th, { morphSVG: jagD, duration: 0.12, ease: "none" }, tLI);   // the budget breaks
+    swapLines("#costA", "#costB", tLI);
+    Q.to(th, { morphSVG: budgetD, duration: 0.7, ease: "expo.out" }, tLO);
+    swapLines("#costB", "#costC", tLO);
+
+    /* REVERSE: the thread rewinds to its start, everything flows back into the word */
+    const tR = tK + 6.6; Q.addLabel("reverse", tR);
+    capOut("#c-cost", tR);
+    Q.to(["#meter", "#graph", "#pipe"], { autoAlpha: 0, duration: 0.4 }, tR)
+      .to(th, { drawSVG: "0% 0%", duration: 0.7, ease: "power2.in" }, tR)
+      .to(["#gInk", "#gCobalt"], { yPercent: -100, duration: 0.9, ease: "power3.inOut" }, tR).set(stage, { "--fg": "#0E0E10" }, tR + 0.45)
+      .to(F, { k2: 1, duration: 1.1, ease: "power3.inOut" }, tR + 0.1)
+      .to(glyphs.concat(dusts), { autoAlpha: 0, duration: 0.35, stagger: { amount: 0.25 } }, tR + 0.95)
+      .fromTo(letters, { autoAlpha: 0, yPercent: 0, x: 0, scale: 1.3, rotation: 0 }, { autoAlpha: 1, scale: 1, duration: 0.7, ease: "expo.out", stagger: { each: 0.035, from: "center" }, immediateRender: false }, tR + 1.0);
+    shot(0.93, 2.5, wcx, wcy, tR + 0.05, 0.9, "power2.inOut");
+    shot(1, 0, wcx, wcy, tR + 1.0, 0.8, "expo.out");
+    Q.to("#rows", { autoAlpha: 1, duration: 0.4 }, tR + 1.6);
+    capIn("#c-rev", tR + 1.6);
+    Q.set(th, { morphSVG: lineA }, tR + 0.8);
+    Q.to("#rowA i", { yPercent: 110, duration: 0.9, ease: "expo.in", stagger: 0.03 }, tR + 2.3)
+      .to("#rowB i", { yPercent: 110, duration: 0.9, ease: "expo.out", stagger: 0.03 }, tR + 2.3);
+    drawIn(th, tR + 2.3, 1.11, "expo.in"); drawIn(th2, tR + 2.3, 1.11, "expo.out");   // the ease, as progress
+
+    /* OUTRO: each letter is tossed along its drawn path into the dock, eating the path as it goes */
+    const tO = tR + 3.8; Q.addLabel("outro", tO);
+    capOut("#c-rev", tO); Q.to("#rows", { autoAlpha: 0, duration: 0.3 }, tO);
+    Q.to([th, th2], { drawSVG: "100% 100%", duration: 0.35, ease: "power2.in" }, tO);
+    Q.fromTo(arcEls, { drawSVG: "0% 0%" }, { drawSVG: "0% 100%", duration: 0.55, ease: "power2.inOut", stagger: 0.05, immediateRender: false }, tO + 0.15);
+    letters.forEach((l, i) => {
+      const at = tO + 0.6 + i * 0.05;
+      Q.to(l, { motionPath: { path: arcs[i].m }, scale: 0.06, duration: 1.0, ease: "power2.in" }, at)
+        .to(arcEls[i], { drawSVG: "100% 100%", duration: 1.0, ease: "power2.in" }, at)
+        .set(l, { autoAlpha: 0 }, at + 1.0);
+    });
+    const tLand = tO + 0.6 + 7 * 0.05 + 1.0;
+    Q.to("#knob", { keyframes: [{ scale: 1.9, duration: 0.12, ease: "power2.out" }, { scale: 1, duration: 0.5, ease: "elastic.out(1, 0.4)" }] }, tLand);
+    capIn("#c-out", tO + 1.3);
+    Q.to({}, { duration: 0.9 }, Q.duration());
+
+    /* the ruler under the word: one tick per chapter, at its real time */
+    const D = Q.duration(), showLab = wr.width > 620;
+    const tks = Object.keys(NAMES).map(k => ({ k, x: wr.left + Q.labels[k] / D * wr.width }));
+    $("#ticks").innerHTML = tks.map((o, i) => { const nx = i < tks.length - 1 ? tks[i + 1].x : wr.right + 999; return `<line x1="${f1(o.x)}" y1="${f1(ul - 7)}" x2="${f1(o.x)}" y2="${f1(ul + 7)}"/>` + (showLab && nx - o.x > 64 ? `<text x="${f1(o.x + 5)}" y="${f1(ul + 21)}">${NAMES[o.k]}</text>` : ""); }).join("");
+    Q.to("#ticks > *", { autoAlpha: 0, y: 10, duration: 0.3, ease: "power2.in", stagger: 0.03 }, tP);
+    Q.to(".tex", { yPercent: -9, duration: D }, 0);                       // textures drift with the whole page
+
+    // particle field is live only from the hush to the end of reverse
+    const fOn = tH - 0.05, fOff = tR + 1.35;
+    Q.eventCallback("onUpdate", () => {
+      const t = Q.time();
+      F.on = t > fOn && t < fOff;
+      setMode(!RM && t > tLI && t < tLO ? "layout" : "transform");
+      syncDock(t);
+    });
+
+    master = Q;
+    $("#track").style.height = (D * 46) + "vh";
+    if (!RM) {
+      st = ScrollTrigger.create({ trigger: "#track", start: "top top", end: "bottom bottom", animation: Q, scrub: 0.8, invalidateOnRefresh: false });
+    } else {
+      // reduced motion: no scrubbed movement, cut to each chapter's settled frame
+      const REST = { intro: 0, position: tP + 1.0, ease: tC + 1.6, stagger: tG + 1.8, cost: tK + 1.7, reverse: tR + 2.0, outro: D };
+      const rest = Object.keys(REST).map(l => ({ l, t: Q.labels[l] }));
+      st = ScrollTrigger.create({ trigger: "#track", start: "top top", end: "bottom bottom", onUpdate: s => { const t = s.progress * D; let pick = rest[0]; rest.forEach(r => { if (t >= r.t) pick = r; }); const target = REST[pick.l]; if (Math.abs(Q.time() - target) > 0.01) Q.time(target); } });
+    }
+    Q.progress(0);
+    buildDock();
+    ScrollTrigger.refresh();
+    if (keep) window.scrollTo(0, st.start + keep * (st.end - st.start));
+    if (!booted) { booted = true; if (!keep && scrollY < 4) opener(lr); }
+  }
+
+  /* the opening shot (plays once on load, not scrubbed; any scroll finishes it) */
+  function opener(){
+    if (RM) return;
+    const op = gsap.timeline({ delay: 0.15 });
+    letters.forEach((l, i) => {
+      const d = Math.abs(i - 3.5) * 0.06;
+      op.fromTo(l, { yPercent: -150, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.45, ease: "power3.in" }, d)
+        .to(l, { scaleY: 0.8, scaleX: 1.12, duration: 0.06, ease: "power1.out" }, d + 0.45)
+        .to(l, { scaleY: 1, scaleX: 1, duration: 0.5, ease: "elastic.out(1, 0.45)" }, d + 0.51);
+    });
+    op.fromTo(th, { drawSVG: "50% 50%" }, { drawSVG: "0% 100%", duration: 0.9, ease: "expo.inOut" }, 0.55)
+      .from("#ticks > *", { autoAlpha: 0, y: -10, duration: 0.45, ease: "expo.out", stagger: 0.04 }, 1.0)
+      .fromTo(L0("#kicker").concat(L0("#lede")), { yPercent: 118 }, { yPercent: 0, duration: 0.8, ease: "expo.out", stagger: 0.07 }, 0.8);
+    OP = op;
+    const stop = () => { if (OP) { OP.progress(1).kill(); OP = null; } removeEventListener("scroll", stop); };
+    addEventListener("scroll", stop, { passive: true });
+  }
+  const L0 = sel => $$(sel + " .ln");
+  function setGX_arr(){ return glyphs.map(g => gsap.quickSetter(g, "x", "px")); }
+  function setGY_arr(){ return glyphs.map(g => gsap.quickSetter(g, "y", "px")); }
+
+  /* ---------- dock: the master, live ---------- */
+  let segEls = [], segList = [];
+  function buildDock(){
+    const D = master.duration();
+    segList = Object.keys(NAMES).map(k => ({ k, t: master.labels[k] })).sort((a, b) => a.t - b.t);
+    $("#segs").innerHTML = segList.map((s, i) => { const end = i < segList.length - 1 ? segList[i + 1].t : D; return `<span class="seg" style="left:${(s.t / D * 100).toFixed(2)}%;width:${((end - s.t) / D * 100).toFixed(2)}%">${NAMES[s.k]}</span>`; }).join("");
+    segEls = $$("#segs .seg");
+    syncDock(master.time());
+  }
+  const setPh = gsap.quickSetter("#ph", "xPercent");
+  function syncDock(t){
+    if (!master) return;
+    const D = master.duration(), p = t / D;
+    setPh(p * 100);
+    $("#tc").textContent = `${pad(t)}:${pad((t % 1) * 24)}`;
+    $("#knob").setAttribute("aria-valuenow", Math.round(p * 100));
+    let cur = 0; segList.forEach((s, i) => { if (t >= s.t - 0.001) cur = i; });
+    segEls.forEach((e, i) => e.classList.toggle("on", i === cur));
+  }
+  const line = $("#dkLine");
+  const toP = p => { if (!st) return; window.scrollTo(0, st.start + gsap.utils.clamp(0, 1, p) * (st.end - st.start)); };
+  let drag = false;
+  const pX = e => { const r = line.getBoundingClientRect(); return (e.clientX - r.left) / r.width; };
+  line.addEventListener("pointerdown", e => { drag = true; line.setPointerCapture(e.pointerId); toP(pX(e)); });
+  line.addEventListener("pointermove", e => { if (drag) toP(pX(e)); });
+  const end = () => drag = false; line.addEventListener("pointerup", end); line.addEventListener("pointercancel", end);
+  $("#knob").addEventListener("keydown", e => {
+    const D = master.duration(), t = master.time();
+    let i = 0; segList.forEach((s, k) => { if (t >= s.t - 0.01) i = k; });
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); const n = segList[Math.min(segList.length - 1, i + 1)]; toP((n.t + 0.05) / D); }
+    if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); const n = segList[Math.max(0, i - 1)]; toP((n.t + 0.05) / D); }
+  });
+  // hide the dock once the finale takes over
+  ScrollTrigger.create({ trigger: "#finale", start: "top 85%", onEnter: () => gsap.to("#dock", { autoAlpha: 0, y: 20, duration: 0.3 }), onLeaveBack: () => gsap.to("#dock", { autoAlpha: 1, y: 0, duration: 0.3 }) });
+
+  /* ---------- boot ---------- */
+  let lastW = innerWidth, rt;
+  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (Math.abs(innerWidth - lastW) < 40) { sizeCanvas(); return; } lastW = innerWidth; glyphs = makeGlyphs(); splitText(); build(); }, 250); });
+  const go = () => { splitText(); build(); };
+  Promise.race([document.fonts ? document.fonts.ready : Promise.resolve(), new Promise(r => setTimeout(r, 1500))]).then(go);
+})();
+</script>
+
+</body></html>
