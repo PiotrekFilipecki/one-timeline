@@ -3,7 +3,7 @@
 **Faza:** P0 zakończona (28.10.2026). **Następna:** P1 (hero, opener, POSITION, cięcie, głowica; bramka kierunku).
 
 ## Stan repo
-- `main`, 3 commity lokalnie. **Nie wypchnięte**: `gh repo create one-timeline --private --source=. --push` zablokował klasyfikator auto-mode; zrób to ręcznie.
+- `main` wypchnięty na https://github.com/PiotrekFilipecki/one-timeline (prywatne; Piotrek zrobił `gh repo create --push` ręcznie, bo klasyfikator auto-mode blokował push).
 - Lint 0 · tsc 0 · build 0 · `npm test` 21/21 (2 skipped = shots) · `npm run shots p0` = 16 PNG w `docs/media/p0/`.
 
 ## Co istnieje
