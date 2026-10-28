@@ -25,7 +25,7 @@ export function Field({ id, title, children }: { id: ChapterId; title: string; c
 /** Scena rozdziału: miejsce na słowo lub dyptyk. Położenie per rozdział w Poster.module.scss. */
 export function Stage({ children }: { children: ReactNode }) {
   return (
-    <div className={s.stage} data-fonts-wait>
+    <div className={s.stage} data-stage data-fonts-wait>
       {children}
     </div>
   );
@@ -62,7 +62,10 @@ export function Code({ lines }: { lines: string[] }) {
   return (
     <pre className={s.code} data-line="code">
       {lines.map((l, i) => (
-        <code key={i}>{l}</code>
+        // Każda linijka w swojej masce: wejście z dołu, wyjście w górę (nigdy fade-up).
+        <span key={i} className={s.mask}>
+          <code>{l}</code>
+        </span>
       ))}
     </pre>
   );

@@ -16,7 +16,7 @@ body {
   margin: 0;
   font-family: var(--font-display);
   font-weight: var(--wght-body);
-  font-variation-settings: "wdth" var(--wdth-rest);
+  font-stretch: var(--wdth-rest);
   font-size: var(--step-1);
   line-height: 1.3;
   background: var(--bg);
@@ -27,6 +27,23 @@ body {
    Bez JS reguła nigdy nie pasuje. Deadline 2 s w src/motion/boot.ts zdejmuje marker sam. */
 html[data-motion-boot="pending"] [data-fonts-wait] {
   visibility: hidden;
+}
+
+/* Elementy, które bez JS nie mają sensu (Replay, głowica): tylko gdy skrypt bramki zdążył oznaczyć <html>.
+   data-js idzie przed sprawdzeniem reduced motion, więc przy reduced motion UI zostaje. */
+html:not([data-js]) [data-needs-js] {
+  display: none;
+}
+
+/* Opener: osiem pasków widocznych w pierwszej klatce tylko wtedy, gdy JS gra opener
+   (<html data-opener="play|skip"> ustawia skrypt bramki; paski to [data-opener-bars]). */
+[data-opener-bars] {
+  display: none;
+}
+
+html[data-motion-boot="pending"][data-opener="play"] [data-opener-bars],
+html[data-motion-boot="done"][data-opener="play"] [data-opener-bars] {
+  display: grid;
 }
 
 /* Stała typografia celów splitu (animaxxing text-stability): kerning nie zmienia się między split a revert. */

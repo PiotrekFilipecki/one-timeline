@@ -1,14 +1,18 @@
 // Bramka pierwszej klatki. Inline skrypt w <head> oznacza <html data-motion-boot="pending"> zanim
-// cokolwiek się namaluje i uzbraja deadline. Właściciele (od P0: fonty; od P1: intro rozdziałów)
-// rejestrują rollback i oddają bramkę, gdy ich intro gra. Kto nie zdąży, zostaje odkryty w spoczynku.
+// cokolwiek się namaluje i uzbraja deadline. Właściciele (fonty, rozdziały) rejestrują rollback i oddają
+// bramkę, gdy mają stan startowy albo spoczynek. Kto nie zdąży, zostaje odkryty w spoczynku.
 // Marker nigdy nie jest w HTML z serwera: bez JS nie ma bramki, strona jest czytelna od razu.
 
 /** ms od pierwszego ukrycia do przymusowego odkrycia. */
 export const BOOT_DEADLINE = 2000;
 
+export const OPENER_KEY = "ot-opened";
+
 export const BOOT_SCRIPT = `(function(){try{
 var d=document.documentElement;
-if(matchMedia('(prefers-reduced-motion: reduce)').matches||d.getAttribute('data-motion')==='reduced')return;
+d.setAttribute('data-js','');
+try{d.setAttribute('data-opener',sessionStorage.getItem('${OPENER_KEY}')?'skip':'play')}catch(e){d.setAttribute('data-opener','play')}
+if(matchMedia('(prefers-reduced-motion: reduce)').matches||d.getAttribute('data-motion')==='reduced'){d.setAttribute('data-opener','skip');return}
 var b=window.__otBoot={owners:{},done:{},expired:false,started:performance.now()};
 b.timer=setTimeout(function(){
 b.expired=true;var hit=false;
@@ -42,14 +46,13 @@ export function armRecovery(owner: string, rollback: () => void): void {
   b.owners[owner] = rollback;
 }
 
-/** Właściciel gra albo ma już stan spoczynku: deadline go nie dotyczy. */
+/** Właściciel ma stan startowy albo spoczynek: deadline go nie dotyczy. Ostatni zdejmuje bramkę. */
 export function handOff(owner: string): void {
   const b = boot();
   if (!b) return;
   delete b.owners[owner];
   b.done[owner] = true;
   if (Object.keys(b.owners).length === 0 && !b.expired) {
-    // Wszyscy właściciele oddani: bramka puszcza, zanim wybije deadline.
     clearTimeout(b.timer);
     b.expired = true;
     document.documentElement.setAttribute("data-motion-boot", "done");
@@ -66,4 +69,18 @@ export function disarm(owner: string): void {
 export function fontsReady(ms: number): Promise<void> {
   const ready = document.fonts?.ready.then(() => undefined) ?? Promise.resolve();
   return Promise.race([ready, new Promise<void>((r) => setTimeout(r, ms))]);
+}
+
+/** Opener gra tylko przy pierwszym wejściu w sesji. */
+export function openerWanted(): boolean {
+  return document.documentElement.getAttribute("data-opener") === "play";
+}
+
+export function markOpened(): void {
+  document.documentElement.setAttribute("data-opener", "skip");
+  try {
+    sessionStorage.setItem(OPENER_KEY, "1");
+  } catch {
+    /* prywatne okno: opener zagra ponownie, to nie błąd */
+  }
 }

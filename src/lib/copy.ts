@@ -15,9 +15,12 @@ export type ChapterCopy = {
   marks?: string[];
   number?: string;
   unit?: string;
+  /** Etykiety UI rozdziału (przycisk Replay, slider głowicy). */
+  replay?: string;
+  playhead?: string;
 };
 
-const KNOWN = new Set(["title", "word", "word2", "line", "code", "marks", "number", "unit"]);
+const KNOWN = new Set(["title", "word", "word2", "line", "code", "marks", "number", "unit", "replay", "playhead"]);
 
 let cache: Record<string, ChapterCopy> | undefined;
 

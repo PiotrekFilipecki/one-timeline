@@ -1,21 +1,26 @@
 // Kontroler cyklu życia rozdziału: start → intro → rest → outro → end.
-// Jeden rozdział gra naraz. Wejście nowego przerywa poprzedni skokiem do spoczynku, nie kolejką.
-// Szybkie przewinięcie przez kilka rozdziałów = kilka skoków. Unmount = kill + revert.
+// prepare(): po fontach buduje intro w pauzie (wartości startowe już na DOM) i oddaje bramkę.
+// Jeden rozdział gra naraz: wejście nowego przerywa poprzedni skokiem do spoczynku, nie kolejką.
 // Buildery tylko budują (zwracają timeline w pauzie); kontroler decyduje, kiedy grają.
 "use client";
 
 import { ScrollTrigger, gsap, registerMotion } from "./register";
 import { prefersReducedMotion } from "./reduced-motion";
-import { armRecovery, bootPending, disarm, handOff } from "./boot";
+import { armRecovery, bootPending, disarm, fontsReady, handOff } from "./boot";
 
 export type Phase = "start" | "intro" | "rest" | "outro" | "end";
 
+export type IntroContext = {
+  /** Pierwsze odegranie od zamontowania (UI wchodzi razem ze słowem). Replay = false. */
+  first: boolean;
+};
+
 export type ChapterBuild = {
-  /** Timeline intro w pauzie, od stanu startowego do spoczynku. null = ten rozdział nie gra. */
-  intro: () => gsap.core.Timeline | null;
-  /** Timeline outro w pauzie, od spoczynku do końca. Domyślnie: brak outro, rozdział stoi. */
+  /** Timeline intro w pauzie, od stanu startowego (immediateRender) do spoczynku. null = ten rozdział nie gra. */
+  intro: (ctx: IntroContext) => gsap.core.Timeline | null;
+  /** Timeline outro w pauzie, od spoczynku do końca. Domyślnie brak: rozdział stoi. */
   outro?: () => gsap.core.Timeline | null;
-  /** Sprzątanie builderów (revert splitów, clearProps). Wołane przy unmount i po recovery. */
+  /** Sprzątanie builderów (revert splitów, clearProps). Po każdym spoczynku, przy unmount i po recovery. */
   revert?: () => void;
 };
 
@@ -23,22 +28,28 @@ export type ChapterOptions = {
   id: string;
   root: HTMLElement;
   build: ChapterBuild;
-  /** Gdzie w kadrze rozdział uznaje się za „wszedł". */
+  /** Gdzie w kadrze rozdział uznaje się za „wszedł" (ScrollTrigger start). */
   start?: string;
-  end?: string;
-  /** Opuszczenie kadru do góry gra outro (P1: cięcie wstecz). Domyślnie rozdział stoi. */
+  /** false = rozdział nie gra sam z wejścia w kadr (ktoś inny woła play(), np. cięcie). */
+  autoplay?: boolean;
+  /** Opuszczenie kadru do góry gra outro. Domyślnie rozdział stoi. */
   outroOnLeaveBack?: boolean;
+  /** ms czekania na fonty przed splitem. */
+  fontWait?: number;
   onPhase?: (phase: Phase) => void;
 };
 
 export type ChapterController = {
   readonly phase: Phase;
+  readonly ready: Promise<void>;
   /** Gra intro od początku. W trakcie: restart. */
   play: () => void;
-  /** Skok do spoczynku bez animacji (szybkie przewinięcie, reduced motion, recovery). */
+  /** Skok do spoczynku bez animacji (szybkie przewinięcie, reduced motion, recovery, puszczenie głowicy). */
   rest: () => void;
-  /** Ustawia progress intro (głowica w P1). Po puszczeniu wołaj rest(). */
+  /** Trzyma intro w progress (głowica). Buduje intro, jeśli trzeba. */
   seek: (progress: number) => void;
+  /** Czas trwania intro w sekundach (0, gdy nie zbudowane). */
+  duration: () => number;
   destroy: () => void;
 };
 
@@ -52,12 +63,13 @@ function claimStage(next: ChapterController): void {
 
 export function createChapter(opts: ChapterOptions): ChapterController {
   registerMotion();
-  const { id, root, build, start = "top 60%", end = "bottom 40%", outroOnLeaveBack = false, onPhase } = opts;
+  const { id, root, build, start = "top 60%", autoplay = true, outroOnLeaveBack = false, fontWait = 1500, onPhase } = opts;
   let phase: Phase = "start";
   let intro: gsap.core.Timeline | null = null;
   let outro: gsap.core.Timeline | null = null;
   let trigger: ScrollTrigger | null = null;
   let destroyed = false;
+  let played = false;
   const owner = `chapter:${id}`;
 
   const setPhase = (p: Phase) => {
@@ -75,36 +87,41 @@ export function createChapter(opts: ChapterOptions): ChapterController {
     outro = null;
   };
 
+  /** Spoczynek: końcowe wartości, potem revert, więc CSS jest jedynym źródłem spoczynku. */
   const rest = () => {
     if (destroyed) return;
     killOutro();
     if (intro) {
-      // progress(1) odgrywa końcowe wartości (spoczynek), potem timeline znika.
       intro.progress(1).kill();
       intro = null;
     }
+    build.revert?.();
+    played = true;
     setPhase("rest");
     handOff(owner);
+  };
+
+  const buildIntro = (): gsap.core.Timeline | null => {
+    killIntro();
+    build.revert?.();
+    try {
+      intro = build.intro({ first: !played });
+    } catch (error) {
+      build.revert?.();
+      rest();
+      throw error;
+    }
+    return intro;
   };
 
   const play = () => {
     if (destroyed) return;
     if (prefersReducedMotion()) return rest();
     killOutro();
-    killIntro();
-    let tl: gsap.core.Timeline | null = null;
-    try {
-      tl = build.intro();
-    } catch (error) {
-      build.revert?.();
-      rest();
-      throw error;
-    }
+    const tl = buildIntro();
     if (!tl) return rest();
-    intro = tl;
     tl.eventCallback("onComplete", () => {
-      if (intro === tl) intro = null;
-      setPhase("rest");
+      if (intro === tl) rest();
     });
     claimStage(controller);
     setPhase("intro");
@@ -113,14 +130,10 @@ export function createChapter(opts: ChapterOptions): ChapterController {
   };
 
   const leave = () => {
-    if (destroyed || phase === "start" || phase === "end") return;
-    if (!build.outro) return;
+    if (destroyed || phase === "start" || phase === "end" || !build.outro) return;
     if (phase === "intro") rest();
     const tl = prefersReducedMotion() ? null : build.outro();
-    if (!tl) {
-      setPhase("end");
-      return;
-    }
+    if (!tl) return setPhase("end");
     killOutro();
     outro = tl;
     setPhase("outro");
@@ -133,14 +146,17 @@ export function createChapter(opts: ChapterOptions): ChapterController {
 
   const seek = (progress: number) => {
     if (destroyed) return;
-    if (!intro) {
-      const tl = build.intro();
+    if (!intro || intro.progress() === 1) {
+      killOutro();
+      const tl = buildIntro();
       if (!tl) return;
-      intro = tl;
+      claimStage(controller);
       setPhase("intro");
     }
-    intro.pause().progress(Math.min(1, Math.max(0, progress)));
+    intro!.pause().progress(Math.min(1, Math.max(0, progress)));
   };
+
+  const duration = () => intro?.duration() ?? 0;
 
   const destroy = () => {
     if (destroyed) return;
@@ -159,43 +175,65 @@ export function createChapter(opts: ChapterOptions): ChapterController {
     get phase() {
       return phase;
     },
+    ready: Promise.resolve(),
     play,
     rest,
     seek,
+    duration,
     destroy,
   };
 
-  // Deadline bezpieczeństwa: jeśli intro nie ruszy przed deadline'em, rozdział zostaje odkryty w spoczynku.
+  // Deadline bezpieczeństwa: jeśli przygotowanie nie zdąży, rozdział zostaje odkryty w spoczynku.
   if (bootPending()) {
     armRecovery(owner, () => {
       killIntro();
       build.revert?.();
+      played = true;
       setPhase("rest");
     });
-  } else {
-    handOff(owner);
   }
-
   setPhase("start");
 
-  trigger = ScrollTrigger.create({
-    trigger: root,
-    start,
-    end,
-    onEnter: () => {
-      if (phase === "start" || phase === "end") play();
-    },
-    onEnterBack: () => {
-      if (phase !== "end") return;
-      if (outroOnLeaveBack) play();
+  /** Po fontach: stan startowy na DOM, bramka oddana, potem decyzja z pozycji w kadrze. */
+  const prepare = async () => {
+    await fontsReady(fontWait);
+    if (destroyed) return;
+    if (prefersReducedMotion()) return rest();
+    const tl = buildIntro();
+    if (!tl) return rest();
+    tl.pause(0);
+    handOff(owner);
+    const rect = root.getBoundingClientRect();
+    const vh = window.innerHeight;
+    if (rect.bottom <= 0) rest();
+    else if (rect.top < vh * 0.6) {
+      // W kadrze przy starcie: gra, albo (bez autoplay, np. POSITION po reloadzie w środku strony) stoi w spoczynku.
+      if (autoplay) play();
       else rest();
-    },
-    onLeaveBack: () => {
-      if (outroOnLeaveBack) leave();
-    },
-    // Opuszczenie w dół nie robi nic: rozdział zagrał i stoi (PLAN §4).
-  });
+    }
+    trigger = ScrollTrigger.create({
+      trigger: root,
+      start,
+      end: "bottom top",
+      onEnter: () => {
+        if (autoplay && (phase === "start" || phase === "end")) play();
+      },
+      onLeave: () => {
+        // Przewinięte w dół zanim zagrało (szybki scroll): stoi w spoczynku, nie w kolejce.
+        if (phase === "start") rest();
+      },
+      onEnterBack: () => {
+        if (phase !== "end") return;
+        if (outroOnLeaveBack) play();
+        else rest();
+      },
+      onLeaveBack: () => {
+        if (outroOnLeaveBack) leave();
+        else if (phase === "start") rest();
+      },
+    });
+  };
+  (controller as { ready: Promise<void> }).ready = prepare();
 
-  // Rozdział już w kadrze przy starcie (reload w środku strony): ScrollTrigger woła onEnter sam.
   return controller;
 }

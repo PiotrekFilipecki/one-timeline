@@ -22,6 +22,10 @@ for (const vp of VIEWPORTS) {
     await page.evaluate(() => document.fonts.ready);
     for (const c of CHAPTERS) {
       await page.evaluate((id) => document.querySelector(`[data-chapter="${id}"]`)!.scrollIntoView({ block: "start" }), c.id);
+      // Stan spoczynku: cięcie (0.6 s) ma czas wystartować, potem żadne cięcie w toku i żaden rozdział w intro (maks. 8 s).
+      await page.waitForTimeout(800);
+      await page.waitForFunction(() => document.documentElement.dataset.cutState !== "cutting" && !document.querySelector('[data-phase="intro"]'), null, { timeout: 8000 }).catch(() => {});
+      await page.evaluate((id) => document.querySelector(`[data-chapter="${id}"]`)!.scrollIntoView({ block: "start" }), c.id);
       await page.waitForTimeout(250);
       await page.screenshot({ path: join(dir, `0${c.index}-${c.id}-${vp.width}.png`) });
     }

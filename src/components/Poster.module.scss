@@ -23,6 +23,7 @@
 }
 
 .stage {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -32,7 +33,7 @@
 .word {
   font-family: var(--font-display);
   font-weight: var(--wght-display);
-  font-variation-settings: "wdth" var(--wdth-rest);
+  font-stretch: var(--wdth-rest);
   font-size: clamp(96px, 28vw, 520px);
   line-height: 0.85;
   letter-spacing: -0.02em;
@@ -88,7 +89,137 @@
   white-space: normal;
 }
 
+/* Słowa zdania: box trzyma szerokość (inline-block), typ rośnie w środku na hover/focus. Litery po splicie
+   są inline-block, więc .t musi być nowrap: łamanie tylko między słowami, nigdy w środku. */
+.w {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.wordButton {
+  all: unset;
+  display: inline-block;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+}
+
+.wordButton :global(.t),
+.w :global([data-dot]) {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Maska na czas wejścia zza krawędzi: clip-path nie zmienia układu ani baseline'u. Zapas na akcenty i wydłużenia. */
+.wordButton :global(.t[data-mask]) {
+  clip-path: inset(-0.2em -0.08em -0.3em);
+}
+
+.wordButton:focus-visible {
+  outline: 3px solid var(--fg);
+  outline-offset: 0.04em;
+}
+
+.replay {
+  all: unset;
+  display: inline-block;
+  justify-self: end;
+  padding: 0.35em 0.9em;
+  border: 2px solid var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--step-1);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 3px solid var(--fg);
+    outline-offset: 4px;
+  }
+
+  @media (max-width: 767px) {
+    justify-self: start;
+  }
+}
+
+/* Linijki kodu w maskach. code musi być blokiem, żeby yPercent działał. */
+.mask {
+  display: block;
+  overflow: hidden;
+}
+
+.mask code {
+  display: block;
+}
+
+/* Opener: osiem pasków palety, fixed nad wszystkim. Widoczność steruje globals.scss. */
+.field[data-chapter="hero"] :global([data-opener-bars]) {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  grid-template-columns: repeat(8, 1fr);
+  pointer-events: none;
+}
+
+.field[data-chapter="hero"] :global([data-opener-bars]) > * {
+  display: block;
+  will-change: transform;
+}
+
+/* Koło cięcia: fixed, w kolorze następnego pola, niewidoczne w spoczynku. */
+.field[data-chapter="hero"] :global([data-cut]) {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 20;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Głowica: hairline przez całą scenę, 24 px pola chwytu (WCAG 2.5.8). Spoczynek: prawa krawędź sceny
+   (koniec timeline'u), widoczna i fokusowalna; intro przesuwa ją transformem od lewej. */
+.field :global([data-playhead]) {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: 24px;
+  margin-left: -12px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.field :global([data-playhead]) > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 11px;
+  width: 2px;
+  background: var(--fg);
+}
+
+.field :global([data-playhead]):focus-visible {
+  outline: none;
+}
+
+.field :global([data-playhead]):focus-visible > span {
+  outline: 3px solid var(--fg);
+  outline-offset: 3px;
+}
+
+/* inline-block: transformy nie działają na elementach inline (sup, code, button po all: unset). */
 .field[data-chapter="hero"] .word sup {
+  display: inline-block;
   margin-left: 0.08em;
   font-family: var(--font-mono);
   font-size: 0.22em;
@@ -143,7 +274,7 @@
   font-family: var(--font-display);
   font-size: clamp(64px, 15vw, 280px);
   font-weight: 300;
-  font-variation-settings: "wdth" 75;
+  font-stretch: 75%;
   font-variant-numeric: tabular-nums;
   line-height: 0.9;
   letter-spacing: -0.02em;
@@ -157,7 +288,7 @@
   font-family: var(--font-mono);
   font-size: var(--step-1);
   font-weight: 500;
-  font-variation-settings: normal;
+  font-stretch: 100%;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }

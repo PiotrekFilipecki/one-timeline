@@ -32,8 +32,9 @@
   --step-5: clamp(88px, 16vw, 300px);
   --step-6: clamp(120px, 26vw, 460px);
 
-  /* Spoczynek osi. Ruch zmienia je tylko przez GSAP (font-variation-settings). */
-  --wdth-rest: 100;
+  /* Spoczynek osi przez font-stretch / font-weight (mapują na wdth / wght). GSAP tweenuje te same
+     własności; font-variation-settings by je nadpisało, więc nie używamy go nigdzie poza pomiarem. */
+  --wdth-rest: 100%;
   --wght-display: 800;
   --wght-body: 450;
 }

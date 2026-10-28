@@ -3,18 +3,20 @@
 Components read this file at build time through `src/lib/copy.ts`. Keep the format:
 one `## <chapter id>` per chapter, then `key: value` lines. A `line` is one English
 sentence or two, 15 words at most. `code` lines may repeat. Do not add keys the
-parser does not know (`title`, `word`, `word2`, `line`, `code`, `marks`, `number`, `unit`).
+parser does not know (`title`, `word`, `word2`, `line`, `code`, `marks`, `number`, `unit`, `replay`, `playhead`).
 
 ## hero
 title: One Timeline
 word: Sequence, overlap, ease, stagger, scrub, reverse.
 marks: 0:00.00, 0:00.90, 0:01.60, 0:02.30, 0:03.10, 0:03.90
 line: One timeline, six moves. Every word performs the move it names, then stands still.
+replay: Replay
 
 ## position
 title: Position
 word: SEQUENCE
 word2: OVERLAP
+playhead: Playhead
 line: Where a tween starts is its position. Next in line, or six hundredths early.
 code: tl.to(".seq", { y: -80 }, "+=0")
 code: tl.to(".ovl", { y: -80 }, "<0.06")

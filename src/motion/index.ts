@@ -1,7 +1,15 @@
 export { BEAT, BEAT_EXIT, gsap, ScrollTrigger, SplitText, CustomEase, useGSAP, registerMotion, motionReady } from "./register";
 export { prefersReducedMotion, setMotionChoice, watchReducedMotion } from "./reduced-motion";
-export { BOOT_DEADLINE, BOOT_SCRIPT, armRecovery, bootPending, disarm, fontsReady, handOff } from "./boot";
+export { BOOT_DEADLINE, BOOT_SCRIPT, armRecovery, bootPending, disarm, fontsReady, handOff, openerWanted, markOpened } from "./boot";
 export { splitLetters } from "./split";
 export type { Split } from "./split";
 export { createChapter } from "./chapter";
-export type { ChapterBuild, ChapterController, ChapterOptions, Phase } from "./chapter";
+export type { ChapterBuild, ChapterController, ChapterOptions, Phase, IntroContext } from "./chapter";
+export { jumpWithWeight, JUMP } from "./jump";
+export { formatTime } from "./format";
+export { fontAxisHover } from "./hover";
+export { createCut, CUT } from "./cut";
+export { attachPlayhead } from "./playhead";
+export { heroIntro, HERO_MARKS } from "./hero";
+export { positionIntro, positionOutro } from "./position";
+export { openerExit, OPENER } from "./opener";
