@@ -141,7 +141,7 @@ test("long frames per chapter at 4× CPU slowdown (COST jank excluded)", async (
     const p = measure(page, id === "scrub" ? 3000 : 4000);
     await cutTo(page, id, { settle: 10 });
     if (id === "scrub") await wheelThroughScrub(page, 30, 60);
-    if (id === "yours") await page.locator("[data-yours-play]").click();
+    if (id === "yours") await page.locator("[data-yours-play]").dispatchEvent("click");
     const r = await p;
     rows.push(`${id}: ${((r.count / r.ms) * 1000).toFixed(1)} fps, long ${r.long}, worst ${r.worst.toFixed(0)} ms`);
     if (r.long) longs.push(`${id} ${r.long}`);

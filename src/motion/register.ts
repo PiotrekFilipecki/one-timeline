@@ -8,6 +8,9 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import { CustomEase } from "gsap/CustomEase";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
+import { DrawSVGPlugin } from "gsap/DrawSVGPlugin";
+import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
+import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 
 /** Wszystkie wejścia. Szybki atak, ~6% przestrzelenia. */
 export const BEAT = "beat";
@@ -23,7 +26,7 @@ let registered = false;
 export function registerMotion(): void {
   if (registered || typeof window === "undefined") return;
   try {
-    gsap.registerPlugin(useGSAP, ScrollTrigger, ScrollSmoother, SplitText, CustomEase);
+    gsap.registerPlugin(useGSAP, ScrollTrigger, ScrollSmoother, SplitText, CustomEase, DrawSVGPlugin, MorphSVGPlugin, MotionPathPlugin);
     CustomEase.create(BEAT, "M0,0 C0.18,0 0.12,1.12 0.46,1.05 0.7,1.01 0.85,1 1,1");
     CustomEase.create(BEAT_EXIT, "M0,0 C0.6,0 0.88,0.35 1,1");
     gsap.defaults({ overwrite: "auto" });
@@ -39,4 +42,4 @@ export const motionReady = (): boolean => registered;
 /** Tylko do testów i diagnostyki: podgląd triggerów z Playwrighta. Nie używać w kodzie strony. */
 if (typeof window !== "undefined") (window as unknown as { __otScrollTrigger?: typeof ScrollTrigger }).__otScrollTrigger = ScrollTrigger;
 
-export { gsap, ScrollTrigger, ScrollSmoother, SplitText, CustomEase, useGSAP };
+export { gsap, ScrollTrigger, ScrollSmoother, SplitText, CustomEase, DrawSVGPlugin, MorphSVGPlugin, MotionPathPlugin, useGSAP };

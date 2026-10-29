@@ -1,6 +1,8 @@
 import { copy } from "@/lib/copy";
 import { Field, Foot, Line, Stage, Word } from "@/components/Poster";
 import { HeroMotion } from "@/components/HeroMotion";
+import { HeroRuler } from "@/components/HeroRuler";
+import { Blob } from "@/components/Blob";
 import s from "@/components/Poster.module.scss";
 
 /**
@@ -37,6 +39,9 @@ export function Hero() {
             );
           })}
         </Word>
+        {/* v7.1: linijka master timeline'u pod zdaniem i blob-bohater (kropla), który wchodzi po zdaniu. */}
+        <HeroRuler marks={marks} />
+        <Blob chapter="hero" />
       </Stage>
       <Foot>
         <Line>{c.line}</Line>

@@ -56,8 +56,9 @@ for (const width of WIDTHS) {
       await record(page, { ms: id === "scrub" ? 4000 : id === "cost" || id === "yours" ? 2500 : 5500 });
       await cutTo(page, id);
       if (id === "scrub") await wheelThroughScrub(page);
-      if (id === "cost") await page.locator("[data-cost-mode]").click();
-      if (id === "yours") await page.locator("[data-yours-play]").click();
+      // dispatchEvent, nie click: actionability Playwrighta przewijałoby okno pod smootherem, a to może zagrać cięcie.
+      if (id === "cost") await page.locator("[data-cost-mode]").dispatchEvent("click");
+      if (id === "yours") await page.locator("[data-yours-play]").dispatchEvent("click");
       // Rozdziały z kontrolerem: cutTo czeka na spoczynek. SCRUB (po przewinięciu), COST (tryb) i YOURS (Play) grają bez fazy.
       if (id === "scrub") await page.waitForTimeout(800);
       else if (id === "cost" || id === "yours") await page.waitForTimeout(2600);

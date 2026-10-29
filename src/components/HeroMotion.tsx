@@ -5,6 +5,8 @@ import { createChapter, type ChapterController } from "@/motion/chapter";
 import { heroIntro } from "@/motion/hero";
 import { fontAxisHover } from "@/motion/hover";
 import { CHAPTERS } from "@/lib/palette";
+import { blobBreathe, blobParts } from "@/motion/blob";
+import { prefersReducedMotion } from "@/motion/reduced-motion";
 
 /**
  * Hero: kontroler rozdziału + Replay (tylko zdanie) + hover/focus szerokości na słowach.
@@ -16,9 +18,17 @@ export function HeroMotion() {
     const root = anchor.current?.closest<HTMLElement>("[data-chapter]");
     if (!root) return;
     let revert: (() => void) | null = null;
+    // Ambient tylko w spoczynku (oddech z pauzą); każde odegranie go zatrzymuje. Reduced motion: nigdy.
+    let breathe: (() => void) | null = null;
+    const blob = blobParts(root);
     const chapter: ChapterController = createChapter({
       id: "hero",
       root,
+      onPhase: (phase) => {
+        breathe?.();
+        breathe = null;
+        if (phase === "rest" && blob && !prefersReducedMotion()) breathe = blobBreathe(blob);
+      },
       build: {
         intro: (ctx) => {
           const built = heroIntro(root, ctx);
@@ -52,6 +62,7 @@ export function HeroMotion() {
       replay?.removeEventListener("click", onReplay);
       for (const box of root.querySelectorAll<HTMLElement>("[data-word-key]")) box.removeEventListener("click", onWord);
       for (const h of hovers) h.destroy();
+      breathe?.();
       chapter.destroy();
     };
   }, []);

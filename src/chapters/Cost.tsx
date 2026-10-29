@@ -1,6 +1,7 @@
 import { copy } from "@/lib/copy";
 import { Code, Field, Foot, Line, Stage, Word } from "@/components/Poster";
 import { CostMotion } from "@/components/CostMotion";
+import { Blob } from "@/components/Blob";
 import s from "@/components/Poster.module.scss";
 
 /**
@@ -17,6 +18,8 @@ export function Cost() {
           <span data-ms>{c.number}</span>
           <small>{c.unit}</small>
         </p>
+        {/* Blob kręci patternem w rytm kosztu klatki; po budżecie morfuje w płomień. */}
+        <Blob chapter="cost" />
       </Stage>
       <Foot>
         <div>

@@ -156,7 +156,10 @@ function createLoop(overlay: HTMLElement, onSettle: () => void, onLooped: () => 
     rect: cutLetter(from, LOOP),
     overlay,
     next: hero,
-    forwardWhen: atDocumentEnd,
+    // Koniec dokumentu, ale nie wtedy, gdy fokus jest w stopce: Tab do ostatnich linków dojeżdża do końca
+    // strony (smoother centruje element z fokusem) i pętla wyrzucałaby klawiaturowego użytkownika na górę.
+    // Z klawiatury pętlę gra link „Back to the top".
+    forwardWhen: () => atDocumentEnd() && !document.activeElement?.closest("[data-sources]"),
     backWhen: () => true,
     resetAfterForward: true,
     onCovered: () => {
@@ -172,6 +175,8 @@ function createLoop(overlay: HTMLElement, onSettle: () => void, onLooped: () => 
   const topLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>("[data-top]"));
   const onTop = (e: Event) => {
     e.preventDefault();
+    // Fokus schodzi z linku: warunek pętli wyklucza fokus w stopce, a po skoku na górę kolejka Tab zaczyna się od hero.
+    (e.currentTarget as HTMLElement).blur();
     cut.forward();
   };
   for (const a of topLinks) a.addEventListener("click", onTop);

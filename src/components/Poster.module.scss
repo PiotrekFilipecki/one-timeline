@@ -602,3 +602,101 @@
   line-height: 1.4;
   color: var(--body);
 }
+
+/* ---------- v7.1 P5b: blob-bohater i dekoracje SVG (absolutne, za słowami, poza układem) ---------- */
+
+.blob,
+.curve,
+.ruler,
+.dominoes {
+  position: absolute;
+  z-index: -1;
+  height: auto;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.blob {
+  width: clamp(84px, 14vw, 220px);
+  will-change: transform;
+}
+
+.field[data-chapter="hero"] .blob {
+  top: 0;
+  right: 12%;
+}
+
+/* Linijka master timeline'u: dolna krawędź sceny, cała szerokość. */
+.ruler {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: clamp(14px, 1.6vw, 24px);
+}
+
+.field[data-chapter="position"] .blob {
+  left: 0;
+  bottom: 0;
+  width: clamp(96px, 16vw, 240px);
+}
+
+/* EASE: krzywa nad kopiami (kopie siedzą na dole sceny). */
+.curve {
+  left: 0;
+  top: 4%;
+  width: 100%;
+}
+
+.field[data-chapter="stagger"] .blob {
+  left: 0;
+  bottom: 0;
+  width: clamp(56px, 8vw, 120px);
+}
+
+.dominoes {
+  left: calc(clamp(56px, 8vw, 120px) * 0.58);
+  bottom: 0;
+  width: calc(clamp(56px, 8vw, 120px) * 2.8);
+}
+
+.field[data-chapter="scrub"] .blob {
+  top: 0;
+  right: 0;
+  width: clamp(72px, 10vw, 160px);
+}
+
+/* Ślimak startuje z wcięciem, żeby pełznąc w lewo (22 % sceny) nie wyszedł za kadr. */
+.field[data-chapter="reverse"] .blob {
+  left: 24%;
+  bottom: 0;
+  width: clamp(96px, 15vw, 230px);
+}
+
+.field[data-chapter="cost"] .blob {
+  left: 0;
+  bottom: 0;
+}
+
+.field[data-chapter="yours"] .blob {
+  top: 0;
+  right: 0;
+}
+
+@media (max-width: 767px) {
+  /* Telefon: krzywa EASE w środku wysokiej sceny, nie pod numerem. */
+  .curve {
+    top: 26%;
+  }
+
+  .field[data-chapter="hero"] .blob {
+    top: auto;
+    right: 0;
+    bottom: 12%;
+    width: 22vw;
+  }
+
+  .field[data-chapter="yours"] .blob,
+  .field[data-chapter="scrub"] .blob {
+    width: 20vw;
+  }
+}

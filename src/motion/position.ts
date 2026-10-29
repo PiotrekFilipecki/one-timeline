@@ -7,6 +7,7 @@
 import { BEAT, gsap } from "./register";
 import { splitLetters, type Split } from "./split";
 import { JUMP, jumpWithWeight } from "./jump";
+import { blobMorph, blobParts, blobRevert } from "./blob";
 
 const CLEAR = "transform,transformOrigin,opacity,visibility,fontStretch,fontWeight,clipPath,willChange";
 
@@ -21,6 +22,7 @@ function parts(root: HTMLElement) {
     playhead: root.querySelector<HTMLElement>("[data-playhead]"),
     code: all('[data-line="code"] code'),
     stage: one("[data-stage]"),
+    blob: blobParts(root),
   };
 }
 
@@ -32,6 +34,7 @@ export function positionIntro(root: HTMLElement, { first }: { first: boolean }):
     while (splits.length) splits.pop()!.revert();
     if (touched.size) gsap.set([...touched], { clearProps: CLEAR });
     touched.clear();
+    if (p.blob) blobRevert(p.blob);
   };
   const tl = gsap.timeline({ paused: true, defaults: { overwrite: "auto" } });
   try {
@@ -52,6 +55,20 @@ export function positionIntro(root: HTMLElement, { first }: { first: boolean }):
       // Spoczynek w CSS: prawa krawędź sceny. Intro jedzie od lewej krawędzi (x = -travel) do spoczynku (x = 0).
       const travel = p.stage.getBoundingClientRect().width;
       tl.fromTo(p.playhead, { x: -travel }, { x: 0, duration: t, ease: "none" }, 0);
+    }
+
+    // Bilet bez kolejki: blob morfuje w bilet i wchodzi łukiem z prawej na lewo (MotionPath), gdy dolny rząd
+    // zaczyna nachodzić na górny.
+    if (p.blob) {
+      blobMorph(tl, p.blob, 0);
+      const travel = Math.max(0, p.stage.getBoundingClientRect().width - p.blob.svg.getBoundingClientRect().width);
+      const lift = -Math.min(220, p.stage.getBoundingClientRect().height * 0.4);
+      tl.fromTo(
+        p.blob.svg,
+        { x: travel, y: 0 },
+        { motionPath: { path: [{ x: travel, y: 0 }, { x: travel * 0.5, y: lift }, { x: 0, y: 0 }], curviness: 1.3 }, duration: 1, ease: BEAT },
+        0.5,
+      );
     }
 
     // Linijki kodu: linie w maskach, z dołu.

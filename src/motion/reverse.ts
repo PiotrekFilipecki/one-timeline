@@ -6,6 +6,7 @@
 
 import { gsap } from "./register";
 import { splitLetters, type Split } from "./split";
+import { blobMorph, blobParts, blobRevert } from "./blob";
 
 export const REVERSE = { enter: 0.8, hold: 0.5, back: 0.8, gap: 0.5 } as const;
 
@@ -16,6 +17,8 @@ function parts(root: HTMLElement) {
     b: one('[data-word="reverse-eased"]'),
     stage: one("[data-stage]"),
     playhead: root.querySelector<HTMLElement>("[data-playhead]"),
+    blob: blobParts(root),
+    spiral: root.querySelector<SVGPathElement>("[data-blob-spiral]"),
   };
 }
 
@@ -33,6 +36,8 @@ export function reverseIntro(root: HTMLElement): ReverseIntro {
     while (splits.length) splits.pop()!.revert();
     for (const m of masked) delete m.dataset.mask;
     if (p.playhead) gsap.set(p.playhead, { clearProps: "transform" });
+    if (p.blob) blobRevert(p.blob);
+    if (p.spiral) gsap.set(p.spiral, { clearProps: "strokeDasharray,strokeDashoffset" });
   };
   try {
     const a = splitLetters(p.a);
@@ -55,6 +60,16 @@ export function reverseIntro(root: HTMLElement): ReverseIntro {
     // Powrót do spoczynku (oba wiersze widoczne).
     tl.add(rowA.tweenFromTo(0, d), t3).add(rowB.tweenFromTo(0, d), t3);
     tl.addLabel("end", t3 + d);
+
+    // Ślimak: blob morfuje w ślimaka, muszla rysuje się spiralą; przy cofaniu pełznie w lewo jak wiersz A
+    // (expo.in), przy powrocie wraca jak wiersz B (expo.out).
+    if (p.blob) {
+      blobMorph(tl, p.blob, t1);
+      if (p.spiral) tl.fromTo(p.spiral, { drawSVG: "0%" }, { drawSVG: "100%", duration: 0.6, ease: "power2.inOut" }, t1 + 0.4);
+      const crawl = Math.min(240, p.stage.getBoundingClientRect().width * 0.22);
+      tl.to(p.blob.svg, { x: -crawl, duration: d, ease: "expo.in" }, t2);
+      tl.to(p.blob.svg, { x: 0, duration: d, ease: "expo.out" }, t3);
+    }
 
     if (p.playhead) {
       const travel = p.stage.getBoundingClientRect().width;

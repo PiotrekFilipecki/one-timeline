@@ -14,7 +14,7 @@ export function EaseMotion() {
     const root = anchor.current?.closest<HTMLElement>("[data-chapter]");
     if (!root) return;
     let revert: (() => void) | null = null;
-    let layoutTween: gsap.core.Tween | null = null;
+    let layoutTween: gsap.core.Timeline | null = null;
     const chapter: ChapterController = createChapter({
       id: "ease",
       root,

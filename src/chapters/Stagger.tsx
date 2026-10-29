@@ -2,6 +2,7 @@ import { copy } from "@/lib/copy";
 import { Field, Foot, Line, Stage } from "@/components/Poster";
 import { Playhead } from "@/components/Playhead";
 import { StaggerMotion } from "@/components/StaggerMotion";
+import { Blob, Dominoes } from "@/components/Blob";
 import s from "@/components/Poster.module.scss";
 
 export const STAGGER_COLS = 16;
@@ -27,6 +28,9 @@ export function Stagger() {
           </span>
         </h2>
         <Playhead label={c.playhead ?? "Playhead"} />
+        {/* Domino: blob przewraca się pierwszy, cztery duchy za nim ze staggerem. */}
+        <Blob chapter="stagger" />
+        <Dominoes />
       </Stage>
       <Foot>
         <Line>{c.line}</Line>

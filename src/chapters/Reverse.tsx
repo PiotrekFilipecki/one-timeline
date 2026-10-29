@@ -2,6 +2,7 @@ import { copy } from "@/lib/copy";
 import { Code, Field, Foot, Line, Stage, Word } from "@/components/Poster";
 import { Playhead } from "@/components/Playhead";
 import { ReverseMotion } from "@/components/ReverseMotion";
+import { Blob } from "@/components/Blob";
 
 /** REVERSE: dyptyk dwóch wierszy tej samej frazy: reverse() (góra) vs easeReverse: true (dół). */
 export function Reverse() {
@@ -12,6 +13,8 @@ export function Reverse() {
         <Word name="reverse-plain">{c.word}</Word>
         <Word as="p" name="reverse-eased">{c.word2}</Word>
         <Playhead label={c.playhead ?? "Playhead"} />
+        {/* Ślimak: muszla rysuje się kreską, przy cofaniu pełznie w lewo. */}
+        <Blob chapter="reverse" />
       </Stage>
       <Foot>
         <Line>{c.line}</Line>

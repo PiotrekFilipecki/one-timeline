@@ -8,6 +8,7 @@ import { jumpWithWeight } from "./jump";
 import { openerExit } from "./opener";
 import { openerWanted, markOpened } from "./boot";
 import { formatTime } from "./format";
+import { blobParts, blobRevert, patternPulse } from "./blob";
 
 /** Starty słów na timeline hero (sekundy). Indeksy górne czytają je z labeli, nie z tej tabeli. */
 export const HERO_MARKS: Record<string, number> = {
@@ -40,6 +41,12 @@ function parts(root: HTMLElement) {
     dot: one("[data-dot]"),
     line: one('[data-line="line"]'),
     replay: root.querySelector<HTMLElement>("[data-replay]"),
+    // v7.1: linijka master timeline'u i blob (SVG: poza listą clearProps, własny revert).
+    ruler: root.querySelector<SVGSVGElement>("[data-ruler]"),
+    rulerLine: root.querySelector<SVGLineElement>("[data-ruler-line]"),
+    rulerTicks: Array.from(root.querySelectorAll<SVGLineElement>("[data-ruler-tick]")),
+    rulerHead: root.querySelector<SVGRectElement>("[data-ruler-head]"),
+    blob: blobParts(root),
     // Paski openera stoją poza rozdziałem (fixed poza treścią smoothera, page.tsx).
     bars: Array.from(document.querySelectorAll<HTMLElement>("[data-opener-bars] > *")),
   };
@@ -59,6 +66,11 @@ export function heroIntro(root: HTMLElement, { first }: { first: boolean }): Her
     if (touched.size) gsap.set([...touched], { clearProps: CLEAR });
     touched.clear();
     for (const t of root.querySelectorAll<HTMLElement>("[data-mask]")) delete t.dataset.mask;
+    // SVG wraca do stanu z SSR: linijka narysowana, głowica na końcu, ticki pełne, blob w spoczynku.
+    if (p.rulerLine) gsap.set(p.rulerLine, { clearProps: "strokeDasharray,strokeDashoffset" });
+    if (p.rulerHead) gsap.set(p.rulerHead, { x: 1000, y: 0 });
+    for (const t of p.rulerTicks) t.setAttribute("y2", "8");
+    if (p.blob) blobRevert(p.blob);
   };
   const tl = gsap.timeline({ paused: true, defaults: { overwrite: "auto" } });
   const touch = (...els: (HTMLElement | HTMLElement[] | null)[]) => {
@@ -162,6 +174,24 @@ export function heroIntro(root: HTMLElement, { first }: { first: boolean }): Her
       const landed = t + 0.45 + CADENCE.reverse * c.length;
       tl.set(p.dot, { autoAlpha: 1 }, landed - 0.1);
       mark("reverse", landed);
+    }
+
+    // Linijka master timeline'u: kreska rysuje się w czasie rzeczywistym zdania, ticki wyrastają na znacznikach,
+    // głowica jedzie od 0 do końca (DrawSVG; SSR ma wszystko narysowane).
+    if (p.ruler && p.rulerLine && p.rulerHead) {
+      const total = Number(p.ruler.dataset.rulerTotal) || 4.4;
+      tl.fromTo(p.rulerLine, { drawSVG: "0%" }, { drawSVG: "100%", duration: total, ease: "none" }, t0);
+      tl.fromTo(p.rulerHead, { x: 0 }, { x: 1000, duration: total, ease: "none" }, t0);
+      for (const tick of p.rulerTicks) {
+        const at = Number(tick.dataset.rulerAt) || 0;
+        tl.fromTo(tick, { attr: { y2: 32 } }, { attr: { y2: 8 }, duration: 0.3, ease: BEAT }, t0 + at);
+      }
+    }
+    // Blob-bohater wchodzi po zdaniu: wyrasta z podstawy (jedyny back.out na tym ekranie), pattern puchnie.
+    if (p.blob) {
+      const landed = t0 + HERO_MARKS.reverse + 0.9;
+      tl.fromTo(p.blob.svg, { scale: 0, transformOrigin: "50% 100%" }, { scale: 1, duration: 0.6, ease: "back.out(2.2)" }, landed);
+      patternPulse(tl, p.blob, landed, 0.6);
     }
 
     if (first) {

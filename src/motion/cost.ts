@@ -13,6 +13,8 @@ import { prefersReducedMotion } from "./reduced-motion";
 import { fontsReady } from "./boot";
 import { splitLetters, type Split } from "./split";
 import { JANK, chapter } from "@/lib/palette";
+import { BLOB_PATTERN, BLOB_SHAPES } from "@/lib/blob";
+import { blobParts, blobRevert } from "./blob";
 
 export const COST = {
   budget: 17.5,
@@ -40,6 +42,11 @@ export function createCost(root: HTMLElement): CostScene {
   registerMotion();
   const word = root.querySelector<HTMLElement>('[data-word="cost"]')!;
   const readout = root.querySelector<HTMLElement>("[data-ms]");
+  const blob = blobParts(root);
+  // Pattern bloba kręci się w rytm kosztu klatki: timeScale = ms / 16.7 (0.5–4). Pełny obrót = ten sam obraz.
+  const spin = blob?.pattern
+    ? gsap.fromTo(blob.pattern, { attr: { patternTransform: `rotate(${BLOB_PATTERN.rotate}) scale(1)` } }, { attr: { patternTransform: `rotate(${BLOB_PATTERN.rotate + 360}) scale(1)` }, duration: 8, repeat: -1, ease: "none", paused: true })
+    : null;
   const mint = chapter("cost").bg;
   let split: Split | null = null;
   let mode: CostMode = "transform";
@@ -67,6 +74,8 @@ export function createCost(root: HTMLElement): CostScene {
       delete root.dataset.jank;
       root.style.setProperty("--bg", mint);
     }
+    // Blob morfuje w płomień (i z powrotem); kolor pola to cięcie, kształt może płynąć.
+    if (blob) gsap.to(blob.shape, { morphSVG: on ? BLOB_SHAPES.flame : BLOB_SHAPES.base, duration: 0.45, ease: on ? "power2.out" : "power2.inOut", overwrite: "auto" });
   };
 
   const show = (ms: number, now: number) => {
@@ -87,6 +96,7 @@ export function createCost(root: HTMLElement): CostScene {
     // przekraczały budżet w trybie transform; czerwień ma mówić o left/top, nie o obciążeniu maszyny.)
     if (over >= COST.window && mode !== "transform") setJank(true);
     else if (ema <= COST.budget && mode === "transform") setJank(false);
+    spin?.timeScale(gsap.utils.clamp(0.5, 4, ema / 16.7));
     show(ema, now);
   };
 
@@ -136,11 +146,13 @@ export function createCost(root: HTMLElement): CostScene {
     ticking = true;
     last = 0;
     gsap.ticker.add(tick);
+    spin?.play();
   };
   const stop = () => {
     if (!ticking) return;
     ticking = false;
     gsap.ticker.remove(tick);
+    spin?.pause();
   };
   const sync = () => {
     if (inView && !prefersReducedMotion()) start();
@@ -222,6 +234,8 @@ export function createCost(root: HTMLElement): CostScene {
       split?.revert();
       split = null;
       setJank(false);
+      spin?.kill();
+      if (blob) blobRevert(blob);
       root.style.removeProperty("--bg");
       delete root.dataset.mode;
       delete root.dataset.costReady;

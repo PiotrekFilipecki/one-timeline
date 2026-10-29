@@ -9,6 +9,7 @@ import { fontsReady } from "./boot";
 import { splitLetters, type Split } from "./split";
 import { yieldFrames } from "./chapter";
 import { jumpTo } from "./scroll";
+import { blobParts, blobRevert } from "./blob";
 
 export const SCRUB_SMOOTH = 0.6;
 
@@ -30,6 +31,7 @@ export function createScrub(root: HTMLElement): ScrubScene {
   const word = root.querySelector<HTMLElement>('[data-word="scrub"]')!;
   const playhead = root.querySelector<HTMLElement>("[data-playhead]");
   const stage = root.querySelector<HTMLElement>("[data-stage]")!;
+  const blob = blobParts(root);
 
   const build = async () => {
     await fontsReady(1500);
@@ -44,6 +46,8 @@ export function createScrub(root: HTMLElement): ScrubScene {
       const travel = stage.getBoundingClientRect().width;
       tl.fromTo(playhead, { x: -travel }, { x: 0, duration: 1 }, 0);
     }
+    // Jog wheel: pełny obrót na przypięty zakres (znacznik i pattern kręcą się razem z nim).
+    if (blob) tl.fromTo(blob.svg, { rotation: 0, transformOrigin: "50% 50%" }, { rotation: 360, duration: 1 }, 0);
     trigger = ScrollTrigger.create({
       id: "scrub:pin",
       trigger: root,
@@ -83,6 +87,7 @@ export function createScrub(root: HTMLElement): ScrubScene {
       split?.revert();
       split = null;
       if (playhead) gsap.set(playhead, { clearProps: "transform" });
+      if (blob) blobRevert(blob);
       delete root.dataset.scrub;
       delete root.dataset.scrubReady;
     },

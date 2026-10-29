@@ -5,6 +5,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
+  // 3 workery: przy 4 na jednym Macu klatki bywały tak rzadkie, że cięcie (0.6 s + 1 s smoothera) nie domykało się w 15 s.
+  workers: 3,
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: [["list"]],

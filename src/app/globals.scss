@@ -106,10 +106,17 @@ html[data-motion-boot="done"][data-opener="play"] [data-opener-bars] {
   pointer-events: none;
 }
 
-/* Smoother: wrapper i treść dostają style inline od ScrollSmoothera; bez JS i przy reduced motion to zwykłe divy. */
+/* Smoother: wrapper i treść dostają style inline od ScrollSmoothera; bez JS i przy reduced motion to zwykłe divy.
+   clip zamiast hidden na wrapperze (!important bije inline): hidden jest przewijalny programowo, więc focus albo
+   scrollIntoView na elemencie w treści przewijały wrapper zamiast okna i fałszowały każdy pomiar rect (progi cięć,
+   pozycje skoków). clip tnie tak samo, a przewinąć się nie da. */
 [data-smooth-wrapper],
 [data-smooth-content] {
   min-width: 0;
+}
+
+html[data-smooth] [data-smooth-wrapper] {
+  overflow: clip !important;
 }
 
 :focus-visible {

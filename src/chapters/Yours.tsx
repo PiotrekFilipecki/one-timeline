@@ -4,6 +4,7 @@ import { copy } from "@/lib/copy";
 import { chapter, paintVars } from "@/lib/palette";
 import { Field, Foot, Line, Stage, Word } from "@/components/Poster";
 import { YoursMotion } from "@/components/YoursMotion";
+import { Blob } from "@/components/Blob";
 import { YOURS_DEFAULT, YOURS_EASES, YOURS_POSITIONS, codeLine } from "@/lib/yours";
 import s from "@/components/Poster.module.scss";
 import type { CSSProperties } from "react";
@@ -16,6 +17,8 @@ export function Yours() {
     <Field id="yours" title={c.title}>
       <Stage>
         <Word name="yours">{c.word}</Word>
+        {/* Twój blob: Play = wybuch i obrót o Twoje wartości, Copy = błysk patternu. */}
+        <Blob chapter="yours" />
       </Stage>
       <Foot>
         <div>

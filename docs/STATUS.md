@@ -1,6 +1,6 @@
 # STATUS · One Timeline v7
 
-**Faza:** v7.1 w toku (29.10.2026). PR 1 (`v7.1/scroll-grain-grid`: ScrollSmoother, ziarno, siatka, copy, favicon, stopka autora z socialami, SEO + JSON-LD + OG) gotowy do oceny na preview Vercela; PR 2 (blob-bohater + dekoracje SVG) i PR 3 (szlif, nagrania) w kolejce. Devlog: `docs/devlog/P5a-scroll-ziarno-siatka.md`. v7 (P0–P4) zamknięte, werdykt Piotrka: kolory tak, ruch do poprawy.
+**Faza:** v7.1 w toku (29.10.2026). PR 1 (`v7.1/scroll-grain-grid`: ScrollSmoother, ziarno, siatka, copy, favicon, stopka autora z socialami, SEO + JSON-LD + OG) i PR 2 (`v7.1/blob`, na gałęzi PR-a 1: blob-bohater z animowanym rastrem, DrawSVG / MorphSVG / MotionPath w każdym rozdziale) gotowe do oceny na preview Vercela; merge zostaje Piotrkowi (klasyfikator auto-mode blokuje merge bez review). PR 3 (szlif, nagrania, FINGERPRINT) w toku. Devlog: `docs/devlog/P5a-scroll-ziarno-siatka.md`. v7 (P0–P4) zamknięte, werdykt Piotrka: kolory tak, ruch do poprawy.
 
 ## Gotowość do wdrożenia
 - Build statyczny (`next build`, trasa `/` prerenderowana), zero env, zero backendu. Vercel: `vercel --prod`. VPS: `npm run build && npm run start -p 3000` za reverse proxy. Decyzja: Piotrek.
@@ -17,7 +17,7 @@
 - **P2:** EASE onion skin (`ease.ts`, `src/lib/eases.ts`), STAGGER siatka 16×7 / 8×7 (`stagger.ts`), SCRUB przypięty na scrollu (`scrub.ts`), REVERSE z realnym `easeReverse` (`reverse.ts`), wszystkie cięcia w `cuts.ts` (koordynator, jedno koło, litera per rozdział), rejestr rozdziałów `stage.ts`. Komponenty: `EaseMotion`, `StaggerMotion`, `ScrubMotion`, `ReverseMotion`, `Cuts`.
 - Anybody variable (wdth 50–150, wght 100–900) przez `next/font`, bramka fontów z deadline 2 s (`src/motion/boot.ts`, `MotionBoot`).
 - Rdzeń ruchu `src/motion/`: `register` (beat / beat-exit), `reduced-motion`, `boot` (bramka + opener raz na sesję), `split` (box słowa trzyma szerokość, litery przypięte), `chapter` (prepare → start → intro → rest → outro → end; seek dla głowicy).
-- Testy: `unit` (czyste funkcje: YOURS, formatTime, parser COPY), `contrast`, `layout` (7 szerokości; 0 przesunięć), `interactive` (hover/focus 26 kontrolek), `a11y` (nagłówki, slidery, etykiety, ścieżka Tab z widocznym focusem, dotyk), `chain`, `ease`, `perf` (fps, LCP, CLS, JS, długie klatki per rozdział; projekt serial po reszcie), `cost`, `yours`, `loop`, `nojs`, `reduced`, `font`, `cut`, `playhead`, `opener`, `shots` + `shots-p1/p2/p3/p4`.
+- Testy: `unit` (czyste funkcje: YOURS, formatTime, parser COPY), `blob` (SSR kształtów, morf kropla → bilet, krzywa EASE, reduced motion), `contrast`, `layout` (7 szerokości; 0 przesunięć), `interactive` (hover/focus 26 kontrolek), `a11y` (nagłówki, slidery, etykiety, ścieżka Tab z widocznym focusem, dotyk), `chain`, `ease`, `perf` (fps, LCP, CLS, JS, długie klatki per rozdział; projekt serial po reszcie), `cost`, `yours`, `loop`, `nojs`, `reduced`, `font`, `cut`, `playhead`, `opener`, `shots` + `shots-p1/p2/p3/p4`.
 - Dokumenty: `docs/adr/0001-architektura.md`, `docs/devlog/P0-fundament.md`, `CLAUDE.md`.
 
 ## Do decyzji Piotrka

@@ -149,6 +149,18 @@ export const waitForRest = (page: Page, id: string, timeout = 15000): Promise<un
 export const waitForIntro = (page: Page, id: string, timeout = 5000): Promise<unknown> =>
   page.waitForFunction((id) => (document.querySelector(`[data-chapter="${id}"]`) as HTMLElement | null)?.dataset.phase === "intro", id, { timeout });
 
+/** Czeka, aż treść smoothera dogoni pasek (bez smoothera od razu): stabilna geometria do pomiarów i klików. */
+export const settled = (page: Page, timeout = 4000): Promise<unknown> =>
+  page
+    .waitForFunction(() => {
+      const content = document.querySelector("[data-smooth-content]") as HTMLElement | null;
+      if (!content || !document.documentElement.hasAttribute("data-smooth")) return true;
+      const t = getComputedStyle(content).transform;
+      const y = t && t !== "none" ? -new DOMMatrixReadOnly(t).f : 0;
+      return Math.abs(y - window.scrollY) < 1;
+    }, null, { timeout })
+    .catch(() => {});
+
 /** Wyzwala cięcie do rozdziału `id` (próg 80 %) i czeka, aż rozdział stanie w spoczynku. */
 export async function cutTo(page: Page, id: string, { settle = 8000 } = {}): Promise<void> {
   // Pozycja w dokumencie przez rect: offsetTop przypiętej sekcji (pin-spacer) to 0.
@@ -157,7 +169,17 @@ export async function cutTo(page: Page, id: string, { settle = 8000 } = {}): Pro
   await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), top - vh * 0.75);
   // 15 s: cięcie trwa 0.6 s (+ 1 s dojazdu smoothera), ale przy 4 równoległych workerach klatki bywają rzadkie
   // (v7.1: jeden timeout na 10 s w pełnym runie na 1920 px; samodzielnie 2/2 zielone).
-  await page.waitForFunction((id) => document.documentElement.getAttribute(`data-cut-${id}`) === "after", id, { timeout: 15000 });
+  await page.waitForFunction((id) => document.documentElement.getAttribute(`data-cut-${id}`) === "after", id, { timeout: 15000 }).catch(async (error) => {
+    // Diagnostyka zamiast gołego timeoutu: stan wszystkich cięć i pozycja dokumentu w chwili poddania się.
+    const state = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      cuts: Array.from(document.documentElement.attributes)
+        .filter((a) => a.name.startsWith("data-cut"))
+        .map((a) => `${a.name.replace("data-cut-", "")}=${a.value}`)
+        .join(" "),
+    }));
+    throw new Error(`cutTo(${id}) timed out at scrollY ${state.scrollY}: ${state.cuts}\n${String(error)}`);
+  });
   // Rozdziały bez kontrolera (SCRUB, COST, YOURS) nie mają fazy: po cięciu stoją od razu.
   await page
     .waitForFunction((id) => {
@@ -165,6 +187,7 @@ export async function cutTo(page: Page, id: string, { settle = 8000 } = {}): Pro
       return !el || el.dataset.phase === undefined || el.dataset.phase === "rest";
     }, id, { timeout: settle })
     .catch(() => {});
+  await settled(page);
 }
 
 /** Przewija przez przypięty zakres SCRUB kółkiem, krokami. */

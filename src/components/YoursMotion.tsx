@@ -44,6 +44,7 @@ export function YoursMotion() {
       try {
         await navigator.clipboard.writeText(line.textContent ?? "");
         if (status) status.textContent = "Copied.";
+        scene.flash();
       } catch {
         if (status) status.textContent = "Select the line to copy it.";
       }
