@@ -1,9 +1,10 @@
 // POSITION: dyptyk SEQUENCE nad OVERLAP. Jedna głowica przejeżdża przez oba słowa naraz; litery skaczą
 // z wagą: góra "+=0" (każdy skok po lądowaniu poprzedniego), dół "<0.06" (każdy 0.06 s po starcie
-// poprzedniego). Pod spodem dwie linijki kodu odsłaniane liniami w maskach (wejście z dołu, wyjście w górę).
+// poprzedniego). Pod spodem dwie linijki kodu odsłaniane liniami w maskach (wejście z dołu). Bez outro:
+// cięcie wstecz skacze pod zakryciem, więc wyjście nigdy nie byłoby widoczne (code review P4).
 "use client";
 
-import { BEAT, BEAT_EXIT, gsap } from "./register";
+import { BEAT, gsap } from "./register";
 import { splitLetters, type Split } from "./split";
 import { JUMP, jumpWithWeight } from "./jump";
 
@@ -64,12 +65,4 @@ export function positionIntro(root: HTMLElement, { first }: { first: boolean }):
     throw error;
   }
   return { timeline: tl, revert };
-}
-
-/** Outro (przewinięcie w górę z cięciem wstecz): linijki kodu wychodzą w górę w maskach. Słowa stoją. */
-export function positionOutro(root: HTMLElement): gsap.core.Timeline {
-  const p = parts(root);
-  const tl = gsap.timeline({ paused: true, defaults: { overwrite: "auto" } });
-  if (p.code.length) tl.to(p.code, { yPercent: -110, duration: 0.3, ease: BEAT_EXIT, stagger: 0.03 }, 0).set(p.code, { clearProps: "transform" });
-  return tl;
 }

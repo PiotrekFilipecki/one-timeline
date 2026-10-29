@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { WIDTHS, cutTo, diffBoxes, installRecorder, noHorizontalScroll, readSamples, record, shifts, snapshotBoxes, wheelThroughScrub } from "./harness";
+import { WIDTHS, cutTo, diffBoxes, installRecorder, noHorizontalScroll, readSamples, record, shifts, snapshotBoxes, waitForRest, wheelThroughScrub } from "./harness";
 
 // Harness przesunięć układu na 7 szerokościach: boot i intro hero (6.5 s), spoczynek, hover i focus słów
 // i Replay, potem każdy rozdział P2 w trakcie intro po cięciu i SCRUB w trakcie przewijania przez przypięty
@@ -16,10 +16,10 @@ for (const width of WIDTHS) {
     page.on("pageerror", (e) => errors.push(e.message));
     await installRecorder(page, { ms: 6500 });
     await page.goto("/");
-    await page.waitForTimeout(6800);
+    // Opener + zdanie ≈ 6.3 s; bramka na fazie, nie na czasie. Rekorder (6.5 s) dojeżdża w tle.
+    await waitForRest(page, "hero");
     expect(errors, "no runtime errors (a failed motion core must never blank the page)").toEqual([]);
     expect(await page.locator("html").getAttribute("data-motion-ready"), "beat / beat-exit registered").toBe("true");
-    await expect(page.locator('[data-chapter="hero"]')).toHaveAttribute("data-phase", "rest");
 
     const samples = await readSamples(page);
     expect(samples.length, "recorder saw visible frames").toBeGreaterThan(10);
@@ -58,7 +58,9 @@ for (const width of WIDTHS) {
       if (id === "scrub") await wheelThroughScrub(page);
       if (id === "cost") await page.locator("[data-cost-mode]").click();
       if (id === "yours") await page.locator("[data-yours-play]").click();
-      await page.waitForTimeout(id === "scrub" ? 800 : id === "cost" || id === "yours" ? 2600 : 5600);
+      // Rozdziały z kontrolerem: cutTo czeka na spoczynek. SCRUB (po przewinięciu), COST (tryb) i YOURS (Play) grają bez fazy.
+      if (id === "scrub") await page.waitForTimeout(800);
+      else if (id === "cost" || id === "yours") await page.waitForTimeout(2600);
       const s = await readSamples(page);
       const m = shifts(s);
       expect(m, `shifts in ${id} at ${width}px:\n${m.slice(0, 20).join("\n")}`).toEqual([]);

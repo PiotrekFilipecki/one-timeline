@@ -31,11 +31,15 @@ export type ChapterCopy = {
   colophon?: string;
 };
 
-const KNOWN = new Set(["title", "word", "word2", "line", "code", "marks", "number", "unit", "replay", "playhead", "nojs", "toggle", "pause", "play", "reverse", "copy", "top", "link", "colophon"]);
+/** Klucze o wartości tekstowej (jedna linia). `code`, `link` i `marks` zbierają listy. */
+type ScalarKey = { [K in keyof ChapterCopy]-?: ChapterCopy[K] extends string | undefined ? K : never }[keyof ChapterCopy];
+const SCALAR: ReadonlySet<string> = new Set<ScalarKey>(["title", "word", "word2", "line", "number", "unit", "replay", "playhead", "nojs", "toggle", "pause", "play", "reverse", "copy", "top", "colophon"]);
+const isScalar = (key: string): key is ScalarKey => SCALAR.has(key);
 
 let cache: Record<string, ChapterCopy> | undefined;
 
-function parse(src: string): Record<string, ChapterCopy> {
+/** Parser COPY.md: sekcje `## id`, linie `klucz: wartość`; nieznany klucz = błąd builda. Eksport dla testów. */
+export function parseCopy(src: string): Record<string, ChapterCopy> {
   const out: Record<string, ChapterCopy> = {};
   let current: ChapterCopy | undefined;
   for (const raw of src.split("\n")) {
@@ -50,19 +54,19 @@ function parse(src: string): Record<string, ChapterCopy> {
     const kv = /^([a-z0-9]+):\s*(.*)$/.exec(line);
     if (!kv) continue;
     const [, key, value] = kv;
-    if (!KNOWN.has(key)) throw new Error(`COPY.md: unknown key "${key}"`);
     if (key === "code") current.code.push(value);
     else if (key === "link") {
       const [label, url] = value.split("|").map((s) => s.trim());
       (current.link ??= []).push({ label, url });
     } else if (key === "marks") current.marks = value.split(",").map((s) => s.trim());
-    else (current as unknown as Record<string, string>)[key] = value;
+    else if (isScalar(key)) current[key] = value;
+    else throw new Error(`COPY.md: unknown key "${key}"`);
   }
   return out;
 }
 
 export function copy(id: ChapterId | "sources"): ChapterCopy {
-  if (!cache) cache = parse(readFileSync(join(process.cwd(), "docs", "COPY.md"), "utf8"));
+  if (!cache) cache = parseCopy(readFileSync(join(process.cwd(), "docs", "COPY.md"), "utf8"));
   const c = cache[id];
   if (!c || !c.title) throw new Error(`COPY.md: section "${id}" is missing title`);
   if (id !== "sources" && (!c.word || !c.line)) throw new Error(`COPY.md: chapter "${id}" is missing word or line`);

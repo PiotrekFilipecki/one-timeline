@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { readFileSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { join } from "node:path";
-import { cutTo, wheelThroughScrub } from "./harness";
+import { cutTo, waitForRest, wheelThroughScrub } from "./harness";
 
 // Jeden plik, tryb serial: pomiary nie mogą biec równolegle (LCP przy 3 workerach: 6.5 s, samemu: 0.5 s).
 test.describe.configure({ mode: "serial" });
@@ -101,7 +101,9 @@ test("LCP, CLS and the JS the page ships", async ({ page, request }) => {
     }).observe({ type: "layout-shift", buffered: true });
   });
   await page.goto("/");
-  await page.waitForTimeout(7000);
+  // Pełna historia kandydatów LCP wymaga odegranego zdania; obserwator dostaje ostatni wpis chwilę po spoczynku.
+  await waitForRest(page, "hero");
+  await page.waitForTimeout(500);
   const vitals = await page.evaluate(() => (window as unknown as { __vitals: { lcp: number; cls: number; lcpEl: string; candidates: string[] } }).__vitals);
   const fcp = await page.evaluate(() => performance.getEntriesByName("first-contentful-paint")[0]?.startTime ?? -1);
   const html = await (await request.get("/")).text();

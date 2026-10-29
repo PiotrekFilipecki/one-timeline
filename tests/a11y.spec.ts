@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { CHAPTERS } from "../src/lib/palette";
 import { hexToCss } from "../src/lib/contrast";
+import { waitForIntro, waitForRest } from "./harness";
 
 // a11y-gate: ścieżka klawiaturą od góry do dołu (kolejność i widoczny focus w kolorze typografii), głowice jako
 // slidery, przyciski z aria-pressed, formularz YOURS z etykietami, struktura nagłówków, dotyk bez zawieszonego hovera.
@@ -48,7 +49,7 @@ test("headings, landmarks, sliders, pressed buttons and labelled fields", async 
 test("keyboard path from top to bottom: logical order and a visible focus in the chapter's typography color", async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto("/");
-  await page.waitForTimeout(6500);
+  await waitForRest(page, "hero");
   const order: string[] = [];
   const problems: string[] = [];
   let lastChapterIdx = -1;
@@ -99,14 +100,14 @@ test("touch never leaves a stuck hover on a hero word", async ({ browser }) => {
   });
   const page = await context.newPage();
   await page.goto("/");
-  await page.waitForTimeout(6500);
+  await waitForRest(page, "hero");
   const word = page.locator('[data-word-key="ease"]');
   const type = word.locator(".t");
   const restStretch = await type.evaluate((el) => getComputedStyle(el).fontStretch);
   await word.tap();
-  await page.waitForTimeout(700);
-  // Replay zdania zagrał (klik), ale szerokość słowa nie została „zawieszona" przez hover.
-  await page.waitForTimeout(6000);
+  // Replay zdania zagrał (tap = klik) i stanął; szerokość słowa nie została „zawieszona" przez hover.
+  await waitForIntro(page, "hero");
+  await waitForRest(page, "hero");
   await expect(page.locator('[data-chapter="hero"]')).toHaveAttribute("data-phase", "rest");
   expect(await type.evaluate((el) => getComputedStyle(el).fontStretch)).toBe(restStretch);
   expect(await word.evaluate((el) => el.style.width)).toBe("");

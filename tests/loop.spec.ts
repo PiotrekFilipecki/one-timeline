@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { CHAPTERS } from "../src/lib/palette";
 import { hexToCss } from "../src/lib/contrast";
+import { waitForRest } from "./harness";
 
 // Pętla: koniec dokumentu → ostatnie cięcie (S z YOURS) zalewa kadr różem i przewija na górę do hero
 // w spoczynku, bez ponownego openera. Link „Back to the top" robi to samo z klawiatury; bez JS jest kotwicą.
@@ -26,8 +27,7 @@ const centerColor = (page: import("@playwright/test").Page) =>
 
 test("scrolling to the end plays the pink loop cut back to the hero at rest", async ({ page }) => {
   await page.goto("/");
-  await page.waitForTimeout(6500);
-  await expect(page.locator('[data-chapter="hero"]')).toHaveAttribute("data-phase", "rest");
+  await waitForRest(page, "hero");
   await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
   await expect(page.locator("html")).toHaveAttribute("data-cut-loop", "cutting");
   await page.waitForTimeout(350);

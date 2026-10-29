@@ -20,7 +20,7 @@ npm test                     # Playwright przeciw buildowi produkcyjnemu (port 3
 npm run shots p4             # screenshoty i nagrania do docs/media/p4/
 ```
 
-Co sprawdza `npm test` (`tests/`): kontrasty palety liczone wzorem WCAG; 0 przesunięć układu na 7 szerokościach przez intro hero, hover i focus, każdy rozdział i przewijanie SCRUB (`harness.ts`); łańcuch kolorów przez wszystkie cięcia; pozycje kopii EASE vs `gsap.parseEase`; fps przy 4× CPU; COST w trybie left/top przy 12× CPU; YOURS (walidacja, Play, Reverse, Copy); pętla; strona bez JS i z reduced motion; ścieżka klawiaturą i widoczny focus; LCP, CLS i rozmiar JS.
+Co sprawdza `npm test` (`tests/`): czyste funkcje bez przeglądarki (wartości YOURS, znacznik czasu, parser COPY.md); kontrasty palety liczone wzorem WCAG; 0 przesunięć układu na 7 szerokościach przez intro hero, hover i focus, każdy rozdział i przewijanie SCRUB (`harness.ts`); łańcuch kolorów przez wszystkie cięcia; pozycje kopii EASE vs `gsap.parseEase`; fps przy 4× CPU; COST w trybie left/top przy 12× CPU; YOURS (walidacja, Play, Reverse, Copy); pętla; strona bez JS i z reduced motion; ścieżka klawiaturą i widoczny focus; LCP, CLS i rozmiar JS.
 
 ## Gdzie co jest
 

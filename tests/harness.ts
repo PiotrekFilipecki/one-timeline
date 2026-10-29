@@ -44,6 +44,8 @@ const keyScript = () => {
 
 const recorderScript = ({ selector, ms }: { selector: string; ms: number }) => {
   const w = window as Win;
+  // Jeden rekorder naraz: poprzedni (jeszcze w oknie czasu) przestaje dopisywać do nowej listy próbek.
+  w.__layoutStop?.();
   w.__layout = [];
   const t0 = performance.now();
   let stopped = false;
@@ -133,6 +135,15 @@ export const noHorizontalScroll = (page: Page): Promise<{ scrollWidth: number; c
     clientWidth: document.documentElement.clientWidth,
   }));
 
+/** Czeka, aż rozdział z kontrolerem stanie w spoczynku (`data-phase="rest"`), zamiast czekania na czas intro.
+ *  Ściśle: przed hydracją atrybutu nie ma, więc brak fazy nie liczy się jako spoczynek. */
+export const waitForRest = (page: Page, id: string, timeout = 15000): Promise<unknown> =>
+  page.waitForFunction((id) => (document.querySelector(`[data-chapter="${id}"]`) as HTMLElement | null)?.dataset.phase === "rest", id, { timeout });
+
+/** Czeka, aż rozdział zacznie grać (`data-phase="intro"`), np. po Replay albo tapnięciu słowa. */
+export const waitForIntro = (page: Page, id: string, timeout = 5000): Promise<unknown> =>
+  page.waitForFunction((id) => (document.querySelector(`[data-chapter="${id}"]`) as HTMLElement | null)?.dataset.phase === "intro", id, { timeout });
+
 /** Wyzwala cięcie do rozdziału `id` (próg 80 %) i czeka, aż rozdział stanie w spoczynku. */
 export async function cutTo(page: Page, id: string, { settle = 8000 } = {}): Promise<void> {
   // Pozycja w dokumencie przez rect: offsetTop przypiętej sekcji (pin-spacer) to 0.
@@ -141,6 +152,7 @@ export async function cutTo(page: Page, id: string, { settle = 8000 } = {}): Pro
   await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), top - vh * 0.75);
   // 10 s: cięcie trwa 0.6 s, ale przy 4 równoległych workerach klatki bywają rzadkie.
   await page.waitForFunction((id) => document.documentElement.getAttribute(`data-cut-${id}`) === "after", id, { timeout: 10000 });
+  // Rozdziały bez kontrolera (SCRUB, COST, YOURS) nie mają fazy: po cięciu stoją od razu.
   await page
     .waitForFunction((id) => {
       const el = document.querySelector(`[data-chapter="${id}"]`) as HTMLElement | null;

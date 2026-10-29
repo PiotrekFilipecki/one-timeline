@@ -19,6 +19,11 @@ export const HERO_MARKS: Record<string, number> = {
   reverse: 3.9,
 };
 
+/** Kadencje słów (s / znak), strojone w P1. MOTION.md: display 0.02–0.04 s / znak; „sequence" celowo wolniej
+ *  (0.12), bo każdy skok z wagą ma być widoczny osobno; overlap, stagger i reverse 0.045–0.05 (odstęp między
+ *  literami musi być krótszy niż ruch litery, żeby fale nachodziły). */
+const CADENCE = { sequence: 0.12, overlap: 0.045, stagger: 0.05, scrub: 0.02, reverse: 0.05 } as const;
+
 const CLEAR = "transform,transformOrigin,opacity,visibility,fontStretch,fontWeight,clipPath,willChange";
 
 export type HeroIntro = { timeline: gsap.core.Timeline; revert: () => void };
@@ -106,21 +111,21 @@ export function heroIntro(root: HTMLElement, { first }: { first: boolean }): Her
     touch(p.dot);
     tl.set(p.dot, { autoAlpha: 0 }, 0);
 
-    // sequence: litery skaczą po kolei, z wagą. Kadencja mini (0.12 s), skoki nachodzą na siebie.
+    // sequence: litery skaczą po kolei, z wagą. Kadencja mini, skoki nachodzą na siebie.
     {
       const c = chars("sequence", { weight: 800 });
       const t = at("sequence");
       tl.set(c, { autoAlpha: 0 }, 0);
-      c.forEach((el, i) => jumpWithWeight(tl, el, t + i * 0.12, { appear: true }));
-      mark("sequence", t + c.length * 0.12 + 0.2);
+      c.forEach((el, i) => jumpWithWeight(tl, el, t + i * CADENCE.sequence, { appear: true }));
+      mark("sequence", t + c.length * CADENCE.sequence + 0.2);
     }
     // overlap: jedna fala zza maski. Każda litera trwa dłużej niż odstęp do następnej, więc ruchy nachodzą.
     {
       const c = chars("overlap");
       const t = at("overlap");
       mask("overlap");
-      tl.fromTo(c, { yPercent: 150 }, { yPercent: 0, duration: 0.55, ease: BEAT, stagger: 0.045 }, t);
-      mark("overlap", t + 0.55 + 0.045 * c.length);
+      tl.fromTo(c, { yPercent: 150 }, { yPercent: 0, duration: 0.55, ease: BEAT, stagger: CADENCE.overlap }, t);
+      mark("overlap", t + 0.55 + CADENCE.overlap * c.length);
     }
     // ease: litery spadają razem zza górnej krawędzi maski i osiadają według krzywej beat.
     {
@@ -134,8 +139,8 @@ export function heroIntro(root: HTMLElement, { first }: { first: boolean }): Her
     {
       const c = chars("stagger");
       const t = at("stagger");
-      tl.fromTo(c, { scaleY: 0, transformOrigin: "50% 100%" }, { scaleY: 1, duration: 0.5, ease: BEAT, stagger: { each: 0.05, from: "center" } }, t);
-      mark("stagger", t + 0.5 + 0.05 * Math.ceil(c.length / 2));
+      tl.fromTo(c, { scaleY: 0, transformOrigin: "50% 100%" }, { scaleY: 1, duration: 0.5, ease: BEAT, stagger: { each: CADENCE.stagger, from: "center" } }, t);
+      mark("stagger", t + 0.5 + CADENCE.stagger * Math.ceil(c.length / 2));
     }
     // scrub: litery pojawiają się skondensowane (wdth 50) i rozciągają do spoczynku. Szerokości przypięte do spoczynku.
     {
@@ -143,7 +148,7 @@ export function heroIntro(root: HTMLElement, { first }: { first: boolean }): Her
       const t = at("scrub");
       tl.set(c, { autoAlpha: 0 }, 0);
       tl.set(c, { autoAlpha: 1 }, t);
-      tl.fromTo(c, { fontStretch: "50%" }, { fontStretch: "100%", duration: 0.7, ease: BEAT, stagger: 0.02 }, t);
+      tl.fromTo(c, { fontStretch: "50%" }, { fontStretch: "100%", duration: 0.7, ease: BEAT, stagger: CADENCE.scrub }, t);
       mark("scrub", t + 0.7);
     }
     // reverse: litery pojawiają się od końca i dosuwają z prawej, w odwrotnej kolejności.
@@ -151,9 +156,9 @@ export function heroIntro(root: HTMLElement, { first }: { first: boolean }): Her
       const c = chars("reverse");
       const t = at("reverse");
       tl.set(c, { autoAlpha: 0 }, 0);
-      [...c].reverse().forEach((el, i) => tl.set(el, { autoAlpha: 1 }, t + i * 0.05));
-      tl.fromTo(c, { xPercent: 40 }, { xPercent: 0, duration: 0.45, ease: BEAT, stagger: { each: 0.05, from: "end" } }, t);
-      const landed = t + 0.45 + 0.05 * c.length;
+      [...c].reverse().forEach((el, i) => tl.set(el, { autoAlpha: 1 }, t + i * CADENCE.reverse));
+      tl.fromTo(c, { xPercent: 40 }, { xPercent: 0, duration: 0.45, ease: BEAT, stagger: { each: CADENCE.reverse, from: "end" } }, t);
+      const landed = t + 0.45 + CADENCE.reverse * c.length;
       tl.set(p.dot, { autoAlpha: 1 }, landed - 0.1);
       mark("reverse", landed);
     }

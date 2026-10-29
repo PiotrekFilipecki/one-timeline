@@ -101,3 +101,19 @@ Pokrycie: wszystkie fazy P0–P3 mają testy w przeglądarce; brak testów jedno
 3. **Co pominąłem:** nic z Q1–Q6; follow-upy z code review wypisane, nie zrobione.
 4. **Wiążące pliki:** MOTION.md, PLAN.md bez zmian w P4.
 5. **Werdykty bramek P1–P3** dalej czekają na wpis Piotrka w devlogach. v6 do SPALONE w karcie projektu po P4.
+
+## Follow-upy po P4 (29.10.2026, druga sesja)
+
+Piotrek: „jeśli coś zostało, to działaj dalej". Zostały follow-upy z Q5; zrobione wszystkie poza zmianami ruchu (trzy rzeczy z Exit Checku czekają na werdykt z telefonu, bo dotykają wartości z MOTION.md).
+
+- `chapter.ts`: `ready` to getter nad zmienną ustawianą po `prepare()`, bez rzutowania. Wydzielone `ensureIntro()` (wspólne dla `seek` i `goTo`), `createTrigger()` i `settleFromViewport()`; `prepare()` ma 14 linii. Zachowanie bez zmian (layout, playhead, ease, chain zielone).
+- `cuts.ts`: `createCoordinator(cuts)` (nasłuch scrolla + rAF + reguła „najdalsze w dół, najbliższe w górę"), `createChapterCut(spec)` i `createLoop()` z linkiem „Back to the top"; `createCuts` to 14 linii składania. `cutLetter()` zamiast dwóch identycznych domknięć.
+- `position.ts`: usunięte martwe `positionOutro` (cięcie wstecz skacze pod zakryciem, wyjście nigdy nie było widoczne); `PositionMotion` i `motion/index.ts` bez eksportu. Cykl outro → end w kontrolerze zostaje jako API.
+- `hero.ts`: kadencje nazwane w `CADENCE` z komentarzem, skąd wartości. Uczciwie: overlap 0.045 i stagger/reverse 0.05 s / znak są nad górną granicą tabeli MOTION.md (0.04), a sequence 0.12 trzykrotnie nad nią. Strojone w P1 na żywo, nie ruszam bez werdyktu; jeśli zostają, tabela staggerów w MOTION.md powinna dostać wyjątek dla hero.
+- `copy.ts`: `ScalarKey` z typu `ChapterCopy` + type guard zamiast `as unknown as Record<string,string>`; nieznany klucz nadal rzuca. `parseCopy` wyeksportowany dla testów.
+- `format.ts`: zaokrąglenie setnych przenosi się przez sekundy i minuty (stary kod dawał `0:60.00` dla 59.996; znalezione przy pisaniu testu, w praktyce nieosiągalne, znaczniki hero < 4 s).
+- `CLAUDE.md`: `window.__otScrollTrigger` oznaczone jako diagnostyka.
+- Testy: `waitForRest(page, id)` i `waitForIntro` w harnessie (ścisłe `data-phase`), zamiast `waitForTimeout(6500 / 6800 / 5600 / 7000)` w `layout`, `interactive`, `a11y`, `loop`, `perf`. Rekorder układu zatrzymuje poprzedni przed startem nowego (wcześniej dwa okna mogły dopisywać do jednej listy). `cutTo` zostaje łagodne dla rozdziałów bez kontrolera (SCRUB, COST, YOURS). Pełny run 4.4 → 3.5 min.
+- `tests/unit.spec.ts`: 10 testów czystych funkcji bez przeglądarki (`clampValues`, `codeLine`, `formatTime`, `parseCopy` + realny `docs/COPY.md`).
+
+Pomiary: lint 0 · tsc 0 · build 0 · `npm test` 53 passed, 16 skipped (shots), 3.5 min · perf bez zmian (FCP 120 ms, CLS 0, 60 fps przy 4×, hero 1 długa klatka 77 ms na starcie).

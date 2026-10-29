@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createChapter, type ChapterController } from "@/motion/chapter";
-import { positionIntro, positionOutro } from "@/motion/position";
+import { positionIntro } from "@/motion/position";
 import { attachPlayhead, chapterTarget } from "@/motion/playhead";
 
 /** POSITION: kontroler (gra po cięciu z hero, nie sam z wejścia w kadr) i głowica jako slider. */
@@ -22,7 +22,6 @@ export function PositionMotion() {
           revert = built.revert;
           return built.timeline;
         },
-        outro: () => positionOutro(root),
         revert: () => {
           revert?.();
           revert = null;

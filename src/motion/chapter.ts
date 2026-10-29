@@ -42,6 +42,7 @@ export type ChapterOptions = {
 
 export type ChapterController = {
   readonly phase: Phase;
+  /** Rozstrzyga się po przygotowaniu (fonty, intro w pauzie, trigger) albo po spoczynku z reduced motion. */
   readonly ready: Promise<void>;
   /** Gra intro od początku. W trakcie: restart. */
   play: () => void;
@@ -55,6 +56,9 @@ export type ChapterController = {
   goTo: (label: string) => void;
   destroy: () => void;
 };
+
+/** Próg „w kadrze" przy przygotowaniu: górna krawędź powyżej 60 % wysokości okna (jak domyślny `start`). */
+const IN_VIEW = 0.6;
 
 let performer: ChapterController | null = null;
 
@@ -81,6 +85,7 @@ export function createChapter(opts: ChapterOptions): ChapterController {
   let trigger: ScrollTrigger | null = null;
   let destroyed = false;
   let played = false;
+  let ready: Promise<void> = Promise.resolve();
   const owner = `chapter:${id}`;
 
   const setPhase = (p: Phase) => {
@@ -125,6 +130,17 @@ export function createChapter(opts: ChapterOptions): ChapterController {
     return intro;
   };
 
+  /** Intro gotowe do przewijania (głowica, przyciski EASE): istniejące w trakcie albo nowe od zera. */
+  const ensureIntro = (): gsap.core.Timeline | null => {
+    if (intro && intro.progress() < 1) return intro;
+    killOutro();
+    const tl = buildIntro();
+    if (!tl) return null;
+    claimStage(controller);
+    setPhase("intro");
+    return tl;
+  };
+
   const play = () => {
     if (destroyed) return;
     if (prefersReducedMotion()) return rest();
@@ -157,29 +173,17 @@ export function createChapter(opts: ChapterOptions): ChapterController {
 
   const seek = (progress: number) => {
     if (destroyed) return;
-    if (!intro || intro.progress() === 1) {
-      killOutro();
-      const tl = buildIntro();
-      if (!tl) return;
-      claimStage(controller);
-      setPhase("intro");
-    }
-    intro!.pause().progress(Math.min(1, Math.max(0, progress)));
+    const tl = ensureIntro();
+    if (!tl) return;
+    tl.pause().progress(Math.min(1, Math.max(0, progress)));
   };
 
   const duration = () => intro?.duration() ?? 0;
 
   const goTo = (label: string) => {
     if (destroyed) return;
-    if (!intro || intro.progress() === 1) {
-      killOutro();
-      const tl = buildIntro();
-      if (!tl) return;
-      claimStage(controller);
-      setPhase("intro");
-    }
-    const tl = intro!;
-    if (!(label in tl.labels)) return;
+    const tl = ensureIntro();
+    if (!tl || !(label in tl.labels)) return;
     if (prefersReducedMotion()) {
       tl.pause(tl.labels[label]);
       if (tl.labels[label] >= tl.duration()) rest();
@@ -207,11 +211,68 @@ export function createChapter(opts: ChapterOptions): ChapterController {
     if (performer === controller) performer = null;
   };
 
+  /** Po przygotowaniu wejścia w kadr decyduje ScrollTrigger; szybkie przewinięcie obok = spoczynek, nie kolejka. */
+  const createTrigger = (): ScrollTrigger =>
+    ScrollTrigger.create({
+      trigger: root,
+      start,
+      end: "bottom top",
+      onEnter: () => {
+        if (autoplay && (phase === "start" || phase === "end")) play();
+      },
+      onLeave: () => {
+        if (phase === "start") rest();
+      },
+      onEnterBack: () => {
+        if (phase !== "end") return;
+        if (outroOnLeaveBack) play();
+        else rest();
+      },
+      onLeaveBack: () => {
+        if (outroOnLeaveBack) leave();
+        else if (phase === "start") rest();
+      },
+    });
+
+  /** Położenie w chwili przygotowania (reload w środku strony): nad kadrem = spoczynek; w kadrze = gra albo
+   *  (bez autoplay, np. POSITION) spoczynek; pod kadrem = czeka na trigger. */
+  const settleFromViewport = () => {
+    const rect = root.getBoundingClientRect();
+    if (rect.bottom <= 0) rest();
+    else if (rect.top < window.innerHeight * IN_VIEW) {
+      if (autoplay) play();
+      else rest();
+    }
+  };
+
+  /** Po fontach: stan startowy na DOM, bramka oddana, potem decyzja z pozycji w kadrze.
+   *  Rozdział pod kadrem oddaje bramkę od razu (nie jest widoczny) i buduje intro o kilka klatek później,
+   *  żeby start strony nie robił jednej długiej klatki ze wszystkich splitów naraz. */
+  const prepare = async (): Promise<void> => {
+    await fontsReady(fontWait);
+    if (destroyed) return;
+    if (prefersReducedMotion()) return rest();
+    if (root.getBoundingClientRect().top >= window.innerHeight) {
+      handOff(owner);
+      await yieldFrames(++deferred);
+      // Cięcie mogło już zagrać ten rozdział (szybki scroll tuż po starcie): nie nadpisuj trwającego intro.
+      if (destroyed || phase !== "start") return;
+    }
+    const tl = buildIntro();
+    if (!tl) return rest();
+    tl.pause(0);
+    handOff(owner);
+    settleFromViewport();
+    trigger = createTrigger();
+  };
+
   const controller: ChapterController = {
     get phase() {
       return phase;
     },
-    ready: Promise.resolve(),
+    get ready() {
+      return ready;
+    },
     play,
     rest,
     seek,
@@ -231,55 +292,7 @@ export function createChapter(opts: ChapterOptions): ChapterController {
     });
   }
   setPhase("start");
-
-  /** Po fontach: stan startowy na DOM, bramka oddana, potem decyzja z pozycji w kadrze.
-   *  Rozdział pod kadrem oddaje bramkę od razu (nie jest widoczny) i buduje intro o kilka klatek później,
-   *  żeby start strony nie robił jednej długiej klatki ze wszystkich splitów naraz. */
-  const prepare = async () => {
-    await fontsReady(fontWait);
-    if (destroyed) return;
-    if (prefersReducedMotion()) return rest();
-    if (root.getBoundingClientRect().top >= window.innerHeight) {
-      handOff(owner);
-      await yieldFrames(++deferred);
-      // Cięcie mogło już zagrać ten rozdział (szybki scroll tuż po starcie): nie nadpisuj trwającego intro.
-      if (destroyed || phase !== "start") return;
-    }
-    const tl = buildIntro();
-    if (!tl) return rest();
-    tl.pause(0);
-    handOff(owner);
-    const rect = root.getBoundingClientRect();
-    const vh = window.innerHeight;
-    if (rect.bottom <= 0) rest();
-    else if (rect.top < vh * 0.6) {
-      // W kadrze przy starcie: gra, albo (bez autoplay, np. POSITION po reloadzie w środku strony) stoi w spoczynku.
-      if (autoplay) play();
-      else rest();
-    }
-    trigger = ScrollTrigger.create({
-      trigger: root,
-      start,
-      end: "bottom top",
-      onEnter: () => {
-        if (autoplay && (phase === "start" || phase === "end")) play();
-      },
-      onLeave: () => {
-        // Przewinięte w dół zanim zagrało (szybki scroll): stoi w spoczynku, nie w kolejce.
-        if (phase === "start") rest();
-      },
-      onEnterBack: () => {
-        if (phase !== "end") return;
-        if (outroOnLeaveBack) play();
-        else rest();
-      },
-      onLeaveBack: () => {
-        if (outroOnLeaveBack) leave();
-        else if (phase === "start") rest();
-      },
-    });
-  };
-  (controller as { ready: Promise<void> }).ready = prepare();
+  ready = prepare();
 
   return controller;
 }

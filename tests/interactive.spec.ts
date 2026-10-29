@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { cutTo, diffBoxes, snapshotBoxes } from "./harness";
+import { cutTo, diffBoxes, snapshotBoxes, waitForRest } from "./harness";
 
 // Q1: hover i focus każdego interaktywnego elementu w każdym rozdziale: boxy słów i linijek nie ruszają się.
 // Na 1440 i 390 (pełne 7 szerokości dla hero jest w layout.spec).
@@ -18,7 +18,7 @@ for (const vp of [
     });
     const page = await context.newPage();
     await page.goto("/");
-    await page.waitForTimeout(6500);
+    await waitForRest(page, "hero");
     const report: string[] = [];
     for (const id of ["hero", "position", "ease", "stagger", "scrub", "reverse", "cost", "yours"] as const) {
       if (id !== "hero") await cutTo(page, id);

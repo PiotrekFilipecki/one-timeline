@@ -11,5 +11,5 @@ export { fontAxisHover } from "./hover";
 export { createCut, CUT } from "./cut";
 export { attachPlayhead } from "./playhead";
 export { heroIntro, HERO_MARKS } from "./hero";
-export { positionIntro, positionOutro } from "./position";
+export { positionIntro } from "./position";
 export { openerExit, OPENER } from "./opener";

@@ -60,13 +60,26 @@ export function letterRect(el: HTMLElement, index: number): DOMRect {
 /** Pozycja elementu w dokumencie. offsetTop zawodzi wewnątrz pin-spacera ScrollTriggera (position: relative). */
 export const docTop = (el: HTMLElement): number => el.getBoundingClientRect().top + window.scrollY;
 
+const section = (id: ChapterId): HTMLElement | null => document.querySelector<HTMLElement>(`[data-chapter="${id}"]`);
+
+/** Litera tnąca ze specyfikacji, mierzona w chwili cięcia; bez słowa: box całej sekcji. */
+const cutLetter = (from: HTMLElement, spec: CutSpec) => (): DOMRect => {
+  const word = from.querySelector<HTMLElement>(spec.word);
+  return word ? letterRect(word, spec.index) : from.getBoundingClientRect();
+};
+
+type Coordinator = {
+  /** Sprawdza progi w następnej klatce (nasłuch scrolla, osiadanie po cięciu). */
+  schedule: () => void;
+  destroy: () => void;
+};
+
 /**
  * Jeden nasłuch scrolla dla wszystkich cięć. Przy przejściu przez kilka progów naraz (skok, szybki scroll)
  * w dół gra tylko najdalsze cięcie, wcześniejsze przechodzą cicho; w górę gra tylko najbliższe hero,
  * dalsze wracają cicho. Dzięki temu dwa cięcia nigdy nie walczą o jedno koło ani o pozycję dokumentu.
  */
-export function createCuts(overlay: HTMLElement): () => void {
-  const cuts: Cut[] = [];
+function createCoordinator(cuts: readonly Cut[]): Coordinator {
   let raf = 0;
   const check = () => {
     if (cuts.some((c) => c.state === "cutting")) return;
@@ -84,81 +97,98 @@ export function createCuts(overlay: HTMLElement): () => void {
       cuts[first].back();
     }
   };
-  const onScroll = () => {
+  const schedule = () => {
     if (raf) return;
     raf = requestAnimationFrame(() => {
       raf = 0;
       check();
     });
   };
-  for (const spec of CUTS) {
-    const from = document.querySelector<HTMLElement>(`[data-chapter="${spec.from}"]`);
-    const next = document.querySelector<HTMLElement>(`[data-chapter="${spec.to}"]`);
-    if (!from || !next) continue;
-    const color = chapter(spec.to).bg;
-    cuts.push(
-      createCut({
-        id: spec.to,
-        color,
-        rect: () => {
-          const word = from.querySelector<HTMLElement>(spec.word);
-          return word ? letterRect(word, spec.index) : from.getBoundingClientRect();
-        },
-        overlay,
-        next,
-        onCovered: () => {
-          window.scrollTo({ top: docTop(next), behavior: "instant" });
-          getChapter(spec.to)?.play();
-        },
-        onPassed: () => getChapter(spec.to)?.rest(),
-        onUncover: () => {
-          window.scrollTo({ top: Math.max(0, docTop(next) - window.innerHeight), behavior: "instant" });
-          const c = getChapter(spec.to);
-          if (c && c.phase === "intro") c.rest();
-        },
-        onSettle: onScroll,
-      }),
-    );
-  }
-  // Pętla do hero: próg = koniec dokumentu; po cięciu wraca do stanu „przed", żeby zagrać znowu.
-  const loopFrom = document.querySelector<HTMLElement>(`[data-chapter="${LOOP.from}"]`);
-  const hero = document.querySelector<HTMLElement>(`[data-chapter="${LOOP.to}"]`);
-  let loop: Cut | null = null;
-  if (loopFrom && hero) {
-    loop = createCut({
-      id: "loop",
-      color: chapter(LOOP.to).bg,
-      rect: () => {
-        const word = loopFrom.querySelector<HTMLElement>(LOOP.word);
-        return word ? letterRect(word, LOOP.index) : loopFrom.getBoundingClientRect();
-      },
-      overlay,
-      next: hero,
-      forwardWhen: atDocumentEnd,
-      backWhen: () => true,
-      resetAfterForward: true,
-      onCovered: () => {
-        window.scrollTo({ top: 0, behavior: "instant" });
-        // Hero w spoczynku: bez ponownego openera i bez replayu zdania.
-        getChapter(LOOP.to)?.rest();
-      },
-      onUncover: () => {},
-      onSettle: onScroll,
-    });
-    cuts.push(loop);
-  }
+  window.addEventListener("scroll", schedule, { passive: true });
+  return {
+    schedule,
+    destroy: () => {
+      window.removeEventListener("scroll", schedule);
+      if (raf) cancelAnimationFrame(raf);
+    },
+  };
+}
+
+/** Cięcie między dwoma rozdziałami: skok dokumentu pod zakryciem i start następnego rozdziału. */
+function createChapterCut(spec: CutSpec, overlay: HTMLElement, onSettle: () => void): Cut | null {
+  const from = section(spec.from);
+  const next = section(spec.to);
+  if (!from || !next) return null;
+  return createCut({
+    id: spec.to,
+    color: chapter(spec.to).bg,
+    rect: cutLetter(from, spec),
+    overlay,
+    next,
+    onCovered: () => {
+      window.scrollTo({ top: docTop(next), behavior: "instant" });
+      getChapter(spec.to)?.play();
+    },
+    onPassed: () => getChapter(spec.to)?.rest(),
+    onUncover: () => {
+      window.scrollTo({ top: Math.max(0, docTop(next) - window.innerHeight), behavior: "instant" });
+      const c = getChapter(spec.to);
+      if (c && c.phase === "intro") c.rest();
+    },
+    onSettle,
+  });
+}
+
+/** Pętla do hero: próg = koniec dokumentu; po cięciu wraca do stanu „przed", żeby zagrać znowu.
+ *  Link „Back to the top" (`[data-top]`) gra ją z klawiatury; bez JS zostaje kotwicą. */
+function createLoop(overlay: HTMLElement, onSettle: () => void): { cut: Cut; destroy: () => void } | null {
+  const from = section(LOOP.from);
+  const hero = section(LOOP.to);
+  if (!from || !hero) return null;
+  const cut = createCut({
+    id: "loop",
+    color: chapter(LOOP.to).bg,
+    rect: cutLetter(from, LOOP),
+    overlay,
+    next: hero,
+    forwardWhen: atDocumentEnd,
+    backWhen: () => true,
+    resetAfterForward: true,
+    onCovered: () => {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      // Hero w spoczynku: bez ponownego openera i bez replayu zdania.
+      getChapter(LOOP.to)?.rest();
+    },
+    onUncover: () => {},
+    onSettle,
+  });
   const topLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>("[data-top]"));
   const onTop = (e: Event) => {
-    if (!loop) return;
     e.preventDefault();
-    loop.forward();
+    cut.forward();
   };
   for (const a of topLinks) a.addEventListener("click", onTop);
-  window.addEventListener("scroll", onScroll, { passive: true });
+  return {
+    cut,
+    destroy: () => {
+      for (const a of topLinks) a.removeEventListener("click", onTop);
+    },
+  };
+}
+
+/** Wszystkie cięcia strony na jednym kole, pod jednym koordynatorem. Zwraca sprzątanie. */
+export function createCuts(overlay: HTMLElement): () => void {
+  const cuts: Cut[] = [];
+  const coordinator = createCoordinator(cuts);
+  for (const spec of CUTS) {
+    const cut = createChapterCut(spec, overlay, coordinator.schedule);
+    if (cut) cuts.push(cut);
+  }
+  const loop = createLoop(overlay, coordinator.schedule);
+  if (loop) cuts.push(loop.cut);
   return () => {
-    window.removeEventListener("scroll", onScroll);
-    for (const a of topLinks) a.removeEventListener("click", onTop);
-    if (raf) cancelAnimationFrame(raf);
+    coordinator.destroy();
+    loop?.destroy();
     for (const c of cuts) c.destroy();
   };
 }
