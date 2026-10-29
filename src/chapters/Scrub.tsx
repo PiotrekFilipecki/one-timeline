@@ -12,7 +12,8 @@ export function Scrub() {
         <Word name="scrub">{c.word}</Word>
         <Playhead label={c.playhead ?? "Playhead"} />
       </Stage>
-      <Foot>
+      {/* Sekcja przypięta: parallax stopki stałby w miejscu i walczył z pinem. */}
+      <Foot speed={1}>
         <Line>{c.line}</Line>
       </Foot>
       <ScrubMotion />

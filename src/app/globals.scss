@@ -47,10 +47,20 @@ html[data-js] [data-no-js] {
   visibility: hidden;
 }
 
-/* Opener: osiem pasków widocznych w pierwszej klatce tylko wtedy, gdy JS gra opener
-   (<html data-opener="play|skip"> ustawia skrypt bramki; paski to [data-opener-bars]). */
+/* Opener: osiem pasków palety, fixed nad wszystkim (poza treścią smoothera). Widoczne w pierwszej klatce
+   tylko wtedy, gdy JS gra opener (<html data-opener="play|skip"> ustawia skrypt bramki). */
 [data-opener-bars] {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
   display: none;
+  grid-template-columns: repeat(8, 1fr);
+  pointer-events: none;
+}
+
+[data-opener-bars] > * {
+  display: block;
+  will-change: transform;
 }
 
 html[data-motion-boot="pending"][data-opener="play"] [data-opener-bars],
@@ -82,6 +92,24 @@ html[data-motion-boot="done"][data-opener="play"] [data-opener-bars] {
   opacity: 0;
   pointer-events: none;
   will-change: transform;
+}
+
+/* Ziarno papieru (v7.1, MOTION.md): jeden kafelek 256 px, multiply, ok. 9 % krycia. Statyczny, fixed poza treścią
+   smoothera, bez zdarzeń. Jedyny wyjątek od „dwóch farb na klatkę": to faktura druku, nie trzeci kolor. */
+[data-grain] {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: url("/grain.png") 0 0 / 256px 256px repeat;
+  opacity: 0.09;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* Smoother: wrapper i treść dostają style inline od ScrollSmoothera; bez JS i przy reduced motion to zwykłe divy. */
+[data-smooth-wrapper],
+[data-smooth-content] {
+  min-width: 0;
 }
 
 :focus-visible {

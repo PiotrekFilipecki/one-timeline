@@ -65,11 +65,13 @@ export function parseCopy(src: string): Record<string, ChapterCopy> {
   return out;
 }
 
-export function copy(id: ChapterId | "sources"): ChapterCopy {
+export type CopyId = ChapterId | "sources" | "author";
+
+export function copy(id: CopyId): ChapterCopy {
   if (!cache) cache = parseCopy(readFileSync(join(process.cwd(), "docs", "COPY.md"), "utf8"));
   const c = cache[id];
   if (!c || !c.title) throw new Error(`COPY.md: section "${id}" is missing title`);
-  if (id !== "sources" && (!c.word || !c.line)) throw new Error(`COPY.md: chapter "${id}" is missing word or line`);
+  if (id !== "sources" && id !== "author" && (!c.word || !c.line)) throw new Error(`COPY.md: chapter "${id}" is missing word or line`);
   const words = c.line.split(/\s+/).length;
   if (words > 15) throw new Error(`COPY.md: "${id}" line has ${words} words, max 15`);
   return c;

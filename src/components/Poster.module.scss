@@ -1,14 +1,22 @@
-// Plakat: 3 rzędy (indeks, scena, stopka), min 100svh, overflow ukryty, żeby oversized
-// typografia mogła być cięta krawędzią kadru bez poziomego scrolla. Kolory wyłącznie z --bg/--fg/--body.
+// Plakat (v7.1): etykieta obrócona wzdłuż lewej krawędzi (kolumna 1), scena i stopka w kolumnie 2, numer
+// rozdziału w konturze za sceną. Min 100svh, overflow ukryty, żeby oversized typografia mogła być cięta
+// krawędzią kadru bez poziomego scrolla. Kolory wyłącznie z --bg/--fg/--body.
 
 .field {
   position: relative;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "label stage"
+    "label foot";
+  column-gap: var(--gutter);
   min-height: 100vh;
   min-height: 100svh;
   padding: var(--gutter);
-  overflow: hidden;
+  /* clip, nie hidden: hidden robi z sekcji kontener przewijania i focus na przycisku przy krawędzi (Replay
+     z parallaxem stopki) przewijałby sekcję o kilka px (v7.1: 4 px przesunięcia w harnessie). */
+  overflow: clip;
   background: var(--bg);
   color: var(--fg);
 }
@@ -22,8 +30,75 @@
   color: var(--fg);
 }
 
+/* Etykieta plakatu: pionowo wzdłuż lewej krawędzi, czytana od dołu (jak grzbiet). Rotacja 180° nie zmienia boxa. */
+.field > .index {
+  grid-area: label;
+  align-self: end;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+}
+
+/* Numer rozdziału w konturze: za sceną, cięty krawędzią, jedzie na scrollu (src/motion/decor.ts). */
+.numeral {
+  position: absolute;
+  right: -0.06em;
+  bottom: -0.18em;
+  z-index: 0;
+  font-family: var(--font-display);
+  font-size: clamp(160px, 44vw, 760px);
+  font-weight: 900;
+  font-stretch: 125%;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--fg);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+
+/* Co drugi rozdział: numer z lewej, u góry (asymetria, nie dekoracja). */
+.field[data-chapter="position"] .numeral,
+.field[data-chapter="stagger"] .numeral,
+.field[data-chapter="reverse"] .numeral,
+.field[data-chapter="yours"] .numeral {
+  right: auto;
+  left: -0.04em;
+  bottom: auto;
+  top: -0.2em;
+}
+
+/* Telefon: numer w górnym rogu (stopka z tekstem jest na dole; YOURS ma stopkę u góry, więc dół). */
+@media (max-width: 767px) {
+  .field .numeral {
+    top: -0.15em;
+    right: -0.08em;
+    bottom: auto;
+    left: auto;
+    font-size: 54vw;
+  }
+
+  .field[data-chapter="yours"] .numeral {
+    top: auto;
+    right: auto;
+    bottom: -0.2em;
+    left: -0.06em;
+  }
+}
+
+/* Hero: `tl` w konturze pod zdaniem, mniejsze, bo zdanie jest szersze niż słowo. */
+.field[data-chapter="hero"] .numeral {
+  font-size: clamp(140px, 30vw, 520px);
+  bottom: -0.12em;
+  right: var(--gutter);
+}
+
 .stage {
   position: relative;
+  z-index: 1;
+  grid-area: stage;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -43,6 +118,9 @@
 }
 
 .foot {
+  position: relative;
+  z-index: 1;
+  grid-area: foot;
   display: grid;
   grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
   gap: var(--gutter);
@@ -62,11 +140,14 @@
   color: var(--body);
 }
 
+/* Kod jako bilet: perforacja z lewej, odcięty od reszty stopki. */
 .code {
   display: grid;
   gap: 0.35em;
   justify-self: end;
   margin: 0;
+  padding: 0.5em 0 0.5em 0.9em;
+  border-left: 2px dashed var(--fg);
   font-family: var(--font-mono);
   font-size: var(--step-1);
   line-height: 1.4;
@@ -157,20 +238,6 @@
   display: block;
 }
 
-/* Opener: osiem pasków palety, fixed nad wszystkim. Widoczność steruje globals.scss. */
-.field[data-chapter="hero"] :global([data-opener-bars]) {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  grid-template-columns: repeat(8, 1fr);
-  pointer-events: none;
-}
-
-.field[data-chapter="hero"] :global([data-opener-bars]) > * {
-  display: block;
-  will-change: transform;
-}
-
 /* Głowica: hairline przez całą scenę, 24 px pola chwytu (WCAG 2.5.8). Spoczynek: prawa krawędź sceny
    (koniec timeline'u), widoczna i fokusowalna; intro przesuwa ją transformem od lewej. */
 .field :global([data-playhead]) {
@@ -213,15 +280,26 @@
   vertical-align: 1.9em;
 }
 
-/* Dyptyki: dwa słowa, ta sama skala i siatka. */
+/* Dyptyki: dwa słowa, ta sama skala i siatka, drugi wiersz zsunięty po przekątnej i nachodzący na pierwszy
+   (OVERLAP dosłownie nachodzi; w REVERSE dolny wiersz cofa się w lewo). */
 .field[data-chapter="position"] .word,
 .field[data-chapter="reverse"] .word {
   font-size: clamp(56px, 16vw, 300px);
 }
 
+.field[data-chapter="position"] [data-word="overlap"] {
+  margin-top: -0.1em;
+  margin-left: 0.7em;
+}
+
 .field[data-chapter="reverse"] .stage {
   align-items: flex-end;
   text-align: right;
+}
+
+.field[data-chapter="reverse"] [data-word="reverse-eased"] {
+  margin-top: -0.1em;
+  margin-right: 0.7em;
 }
 
 /* EASE: onion skin. Kopie w jednym wierszu; pozycja = --p * (szerokość kontenera − szerokość kopii),
@@ -383,14 +461,19 @@
   font-size: 22vw;
 }
 
+.field[data-chapter="yours"] {
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "label foot"
+    "label stage";
+}
+
 .field[data-chapter="yours"] .stage {
-  order: 3;
   justify-content: flex-end;
   margin-bottom: calc(-1 * var(--gutter) - 0.2em);
 }
 
 .field[data-chapter="yours"] .foot {
-  order: 2;
   align-self: start;
   padding-top: var(--step-3);
 }

@@ -9,7 +9,7 @@ parser does not know (`title`, `word`, `word2`, `line`, `code`, `marks`, `number
 title: One Timeline
 word: Sequence, overlap, ease, stagger, scrub, reverse.
 marks: 0:00.00, 0:00.90, 0:01.60, 0:02.30, 0:03.10, 0:03.90
-line: One timeline, six moves. Every word performs the move it names, then stands still.
+line: One timeline, six moves. Each word performs the move it names, then sits down.
 replay: Replay
 
 ## position
@@ -17,7 +17,7 @@ title: Position
 word: SEQUENCE
 word2: OVERLAP
 playhead: Playhead
-line: Where a tween starts is its position. Next in line, or six hundredths early.
+line: Position is where a tween starts. Next in line, or cutting in six hundredths early.
 code: tl.to(".seq", { y: -80 }, "+=0")
 code: tl.to(".ovl", { y: -80 }, "<0.06")
 
@@ -25,26 +25,26 @@ code: tl.to(".ovl", { y: -80 }, "<0.06")
 title: Ease
 word: EASE
 playhead: Playhead
-line: Twelve copies of one word. Their spacing is the curve.
+line: Twelve copies of one word. The gaps between them are the curve. Mind the gap.
 
 ## stagger
 title: Stagger
 word: STAGGER
 playhead: Playhead
-line: One tween, a grid of letters. The offset decides who moves first.
+line: One tween, 112 letters. The offset decides who goes first. Nobody argues.
 
 ## scrub
 title: Scrub
 word: SCRUB
 playhead: Playhead
-line: The only chapter on the scroll. Your finger is the playhead.
+line: The only chapter on the scroll. Your finger is the playhead. Yes, that one.
 
 ## reverse
 title: Reverse
 word: REVERSE
 word2: REVERSE
 playhead: Playhead
-line: Played backwards, an ease-out crawls. easeReverse keeps the exit honest.
+line: Backwards, an ease-out crawls like a snail. easeReverse keeps the exit honest.
 code: tl.reverse()
 code: tl.to(b, { yPercent: 0, ease: "expo.out", easeReverse: true })
 
@@ -53,7 +53,7 @@ title: Cost
 word: COST
 number: 16.7
 unit: ms per frame
-line: Same letters, two ways to move them. One fits in a frame. One does not.
+line: Four letters, two ways. One fits the frame. The other sets it on fire.
 nojs: With JavaScript the letters orbit and the number is this frame's real cost; switching to left/top turns the field red.
 toggle: left / top
 pause: Pause
@@ -63,7 +63,7 @@ code: gsap.to(".l", { left: 120 })
 ## yours
 title: Yours
 word: YOURS
-line: Your turn. Change the line, play it on the word.
+line: Your turn. Edit the line, play it on the word. Break it, we reset.
 nojs: With JavaScript this line is editable and plays on the letters of YOURS.
 play: Play
 reverse: Reverse
@@ -82,3 +82,8 @@ link: Codrops: Animating with agents, GSAP and Animaxxing | https://tympanus.net
 link: Museum of Motion (inspiration) | https://tympanus.net/Demos/MuseumOfMotion/
 colophon: Set in Anybody (Tyler Finck, Etcetera Type Co.) via next/font. Built with
 top: Back to the top
+
+## author
+title: Made by Piotrek Filipecki
+link: Portfolio | https://piotrfilipecki.com
+link: GitHub | https://github.com/PiotrekFilipecki

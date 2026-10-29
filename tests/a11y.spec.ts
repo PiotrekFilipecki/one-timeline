@@ -56,6 +56,15 @@ test("keyboard path from top to bottom: logical order and a visible focus in the
   const ids = ["hero", "position", "ease", "stagger", "scrub", "reverse", "cost", "yours", "sources"];
   for (let i = 0; i < 60; i++) {
     await page.keyboard.press("Tab");
+    // Smoother dowozi element z fokusem do kadru własnym skokiem; dajemy mu klatkę lub dwie, nie czas.
+    await page
+      .waitForFunction(() => {
+        const el = document.activeElement as HTMLElement | null;
+        if (!el || el === document.body) return true;
+        const r = el.getBoundingClientRect();
+        return r.bottom > 0 && r.top < innerHeight;
+      }, null, { timeout: 1500 })
+      .catch(() => {});
     const info = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement | null;
       if (!el || el === document.body) return null;

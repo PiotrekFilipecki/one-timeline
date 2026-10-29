@@ -1,12 +1,13 @@
 import { copy } from "@/lib/copy";
 import { Field, Foot, Line, Stage, Word } from "@/components/Poster";
-import { HeroMotion, OpenerBars } from "@/components/HeroMotion";
+import { HeroMotion } from "@/components/HeroMotion";
 import s from "@/components/Poster.module.scss";
 
 /**
  * Hero: zdanie, w którym każde słowo odgrywa swój rozdział (HeroMotion). Indeksy górne = znaczniki czasu,
  * w HTML z serwera z COPY.md (bez JS), nadpisywane z labeli timeline'u po stronie klienta.
- * Kropka na końcu zdania jest osobnym elementem: z niej rośnie cięcie do POSITION.
+ * Kropka na końcu zdania jest osobnym elementem: z niej rośnie cięcie do POSITION. Paski openera są w page.tsx
+ * (fixed poza treścią smoothera).
  */
 export function Hero() {
   const c = copy("hero");
@@ -14,7 +15,6 @@ export function Hero() {
   const marks = c.marks ?? [];
   return (
     <Field id="hero" title={c.title}>
-      <OpenerBars />
       <Stage>
         <Word as="h1" name="sentence">
           {words.map((w, i) => {

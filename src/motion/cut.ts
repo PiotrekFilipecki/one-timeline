@@ -4,13 +4,14 @@
 // Wstecz: koło pojawia się pełne, dokument skacze z powrotem, koło kurczy się na expo.out (odwrócone expo.in,
 // jak easeReverse). W trakcie cięcia maks. 3 kolory: dwa pola i koło. Szybkie przejścia przez próg nie
 // kolejkują: w chwili zakrycia liczy się realna pozycja dokumentu.
-// Progi liczone z getBoundingClientRect przez koordynatora w cuts.ts (jeden nasłuch scrolla na stronę):
+// Progi liczone z pozycji w dokumencie względem celu scrolla przez koordynatora w cuts.ts (jeden nasłuch na stronę):
 // ScrollTrigger nie przeliczał triggerów utworzonych przed pin-spacerem SCRUB (progi poniżej pinu o 100 vh
 // za wcześnie), a przy skoku przez kilka progów naraz gra tylko najdalsze cięcie, wcześniejsze przechodzą cicho.
 "use client";
 
 import { gsap, registerMotion } from "./register";
 import { prefersReducedMotion } from "./reduced-motion";
+import { viewTop } from "./scroll";
 
 export const CUT = { grow: 0.6, ease: "expo.in", forwardAt: 0.8, backAt: 0.2 } as const;
 
@@ -77,10 +78,11 @@ export function createCut(opts: CutOptions): Cut {
   };
 
   const vh = () => window.innerHeight;
-  const top = () => next.getBoundingClientRect().top;
+  // Progi względem celu scrolla (viewTop), nie wygładzonej treści: patrz scroll.ts.
+  const top = () => viewTop(next);
   const pastForward = () => (forwardWhen ? forwardWhen() : top() <= vh() * CUT.forwardAt);
   const pastBack = () => (backWhen ? backWhen() : top() < vh() * CUT.backAt);
-  const nextInView = () => forwardWhen != null || next.getBoundingClientRect().bottom > 0;
+  const nextInView = () => forwardWhen != null || top() + next.getBoundingClientRect().height > 0;
 
   /** Geometria: koło startuje z bounding boxa litery i rośnie, aż zakryje najdalszy róg kadru. */
   const geometry = () => {

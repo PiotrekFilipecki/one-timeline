@@ -7,6 +7,7 @@
 import { chapter, type ChapterId } from "@/lib/palette";
 import { createCut, type Cut } from "./cut";
 import { getChapter } from "./stage";
+import { jumpTo, onScrollUpdate, scrollPositionOf } from "./scroll";
 
 export type CutSpec = {
   from: ChapterId;
@@ -29,7 +30,7 @@ export const CUTS: readonly CutSpec[] = [
 /** Pętla: ostatnie cięcie (S z YOURS) zalewa kadr różem i przewija na górę do hero w spoczynku. */
 export const LOOP: CutSpec = { from: "yours", to: "hero", word: '[data-word="yours"]', index: -1 };
 
-/** Koniec dokumentu (z marginesem 2 px na zaokrąglenia). */
+/** Koniec dokumentu (z marginesem 2 px na zaokrąglenia). Pasek, nie wygładzona treść: cel scrolla. */
 export const atDocumentEnd = (): boolean => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
 
 /** Bounding box i-tej widocznej litery w tekście elementu (bez białych znaków). */
@@ -57,8 +58,9 @@ export function letterRect(el: HTMLElement, index: number): DOMRect {
   return r.width > 0 ? r : el.getBoundingClientRect();
 }
 
-/** Pozycja elementu w dokumencie. offsetTop zawodzi wewnątrz pin-spacera ScrollTriggera (position: relative). */
-export const docTop = (el: HTMLElement): number => el.getBoundingClientRect().top + window.scrollY;
+/** Pozycja elementu w dokumencie. offsetTop zawodzi wewnątrz pin-spacera ScrollTriggera (position: relative);
+ *  przy smootherze rect + wygładzony scroll (scroll.ts). */
+export const docTop = (el: HTMLElement): number => scrollPositionOf(el);
 
 const section = (id: ChapterId): HTMLElement | null => document.querySelector<HTMLElement>(`[data-chapter="${id}"]`);
 
@@ -105,10 +107,13 @@ function createCoordinator(cuts: readonly Cut[]): Coordinator {
     });
   };
   window.addEventListener("scroll", schedule, { passive: true });
+  // Smoother: treść dojeżdża jeszcze po ostatnim zdarzeniu scroll, więc progi sprawdzamy też z jego onUpdate.
+  const offSmooth = onScrollUpdate(schedule);
   return {
     schedule,
     destroy: () => {
       window.removeEventListener("scroll", schedule);
+      offSmooth();
       if (raf) cancelAnimationFrame(raf);
     },
   };
@@ -126,12 +131,12 @@ function createChapterCut(spec: CutSpec, overlay: HTMLElement, onSettle: () => v
     overlay,
     next,
     onCovered: () => {
-      window.scrollTo({ top: docTop(next), behavior: "instant" });
+      jumpTo(docTop(next));
       getChapter(spec.to)?.play();
     },
     onPassed: () => getChapter(spec.to)?.rest(),
     onUncover: () => {
-      window.scrollTo({ top: Math.max(0, docTop(next) - window.innerHeight), behavior: "instant" });
+      jumpTo(docTop(next) - window.innerHeight);
       const c = getChapter(spec.to);
       if (c && c.phase === "intro") c.rest();
     },
@@ -141,7 +146,7 @@ function createChapterCut(spec: CutSpec, overlay: HTMLElement, onSettle: () => v
 
 /** Pętla do hero: próg = koniec dokumentu; po cięciu wraca do stanu „przed", żeby zagrać znowu.
  *  Link „Back to the top" (`[data-top]`) gra ją z klawiatury; bez JS zostaje kotwicą. */
-function createLoop(overlay: HTMLElement, onSettle: () => void): { cut: Cut; destroy: () => void } | null {
+function createLoop(overlay: HTMLElement, onSettle: () => void, onLooped: () => void): { cut: Cut; destroy: () => void } | null {
   const from = section(LOOP.from);
   const hero = section(LOOP.to);
   if (!from || !hero) return null;
@@ -155,9 +160,11 @@ function createLoop(overlay: HTMLElement, onSettle: () => void): { cut: Cut; des
     backWhen: () => true,
     resetAfterForward: true,
     onCovered: () => {
-      window.scrollTo({ top: 0, behavior: "instant" });
-      // Hero w spoczynku: bez ponownego openera i bez replayu zdania.
+      jumpTo(0);
+      // Hero w spoczynku: bez ponownego openera i bez replayu zdania. Cięcia rozdziałów wracają cicho do
+      // „przed": inaczej koordynator zagrałby cięcie POSITION wstecz (śliwkowe koło nad hero) zaraz po pętli.
       getChapter(LOOP.to)?.rest();
+      onLooped();
     },
     onUncover: () => {},
     onSettle,
@@ -184,7 +191,9 @@ export function createCuts(overlay: HTMLElement): () => void {
     const cut = createChapterCut(spec, overlay, coordinator.schedule);
     if (cut) cuts.push(cut);
   }
-  const loop = createLoop(overlay, coordinator.schedule);
+  const loop = createLoop(overlay, coordinator.schedule, () => {
+    for (const c of cuts) c.unpass();
+  });
   if (loop) cuts.push(loop.cut);
   return () => {
     coordinator.destroy();

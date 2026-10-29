@@ -8,6 +8,7 @@ import { prefersReducedMotion } from "./reduced-motion";
 import { fontsReady } from "./boot";
 import { splitLetters, type Split } from "./split";
 import { yieldFrames } from "./chapter";
+import { jumpTo } from "./scroll";
 
 export const SCRUB_SMOOTH = 0.6;
 
@@ -71,7 +72,7 @@ export function createScrub(root: HTMLElement): ScrubScene {
     seek: (p) => {
       if (!trigger) return;
       const y = trigger.start + (trigger.end - trigger.start) * Math.min(1, Math.max(0, p));
-      window.scrollTo({ top: y, behavior: "instant" });
+      jumpTo(y);
     },
     destroy: () => {
       destroyed = true;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Anybody } from "next/font/google";
 import { BOOT_SCRIPT } from "@/motion/boot";
 import { MotionBoot } from "@/components/MotionBoot";
+import { Favicon } from "@/components/Favicon";
 import "./globals.scss";
 
 // Jedna rodzina, jest aktorem: osie wdth 50–150 i wght 100–900 (variable). next/font self-hostuje plik,
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body>
         <MotionBoot />
+        <Favicon />
         {children}
       </body>
     </html>

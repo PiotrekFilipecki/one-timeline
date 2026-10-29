@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "@playwright/test";
 import { CHAPTERS } from "../src/lib/palette";
+import { cutTo, waitForRest } from "./harness";
 
 // npm run shots <faza>: screenshot każdego rozdziału na 1440 i 390 do docs/media/<faza>/.
 const phase = process.env.SHOTS_PHASE;
@@ -19,13 +20,12 @@ for (const vp of VIEWPORTS) {
     const context = await browser.newContext({ viewport: vp });
     const page = await context.newPage();
     await page.goto("/");
-    await page.evaluate(() => document.fonts.ready);
+    await waitForRest(page, "hero");
     for (const c of CHAPTERS) {
-      await page.evaluate((id) => document.querySelector(`[data-chapter="${id}"]`)!.scrollIntoView({ block: "start" }), c.id);
-      // Stan spoczynku: cięcie (0.6 s) ma czas wystartować, potem żadne cięcie w toku i żaden rozdział w intro (maks. 8 s).
-      await page.waitForTimeout(800);
+      // Skok przez próg cięcia jak w testach (window.scrollTo): scrollIntoView przewijałoby wrapper smoothera,
+      // nie okno, i żadne cięcie by nie zagrało. Po cięciu dokument stoi na górze rozdziału, w spoczynku.
+      if (c.id !== "hero") await cutTo(page, c.id);
       await page.waitForFunction(() => document.documentElement.dataset.cutting !== "true" && !document.querySelector('[data-phase="intro"]'), null, { timeout: 8000 }).catch(() => {});
-      await page.evaluate((id) => document.querySelector(`[data-chapter="${id}"]`)!.scrollIntoView({ block: "start" }), c.id);
       await page.waitForTimeout(250);
       await page.screenshot({ path: join(dir, `0${c.index}-${c.id}-${vp.width}.png`) });
     }

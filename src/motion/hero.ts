@@ -40,7 +40,8 @@ function parts(root: HTMLElement) {
     dot: one("[data-dot]"),
     line: one('[data-line="line"]'),
     replay: root.querySelector<HTMLElement>("[data-replay]"),
-    bars: all("[data-opener-bars] > *"),
+    // Paski openera stoją poza rozdziałem (fixed poza treścią smoothera, page.tsx).
+    bars: Array.from(document.querySelectorAll<HTMLElement>("[data-opener-bars] > *")),
   };
 }
 

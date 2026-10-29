@@ -85,6 +85,7 @@ export function Yours() {
 /** Źródła i kolofon pod YOURS: zieleń, body w mięcie. Wersje bibliotek z package.json w czasie builda. */
 export function Sources() {
   const c = copy("sources");
+  const author = copy("author");
   const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")) as { dependencies: Record<string, string>; devDependencies: Record<string, string> };
   const versions = [
     ["next", pkg.dependencies.next],
@@ -111,6 +112,19 @@ export function Sources() {
       <p className={s.colophon} data-line="colophon">
         {c.colophon} {versions.map(([n, v]) => `${n} ${v}`).join(" · ")}.
       </p>
+      {/* Autor: portfolio i sociale z COPY.md (## author). */}
+      <p className={s.index} data-line="index">
+        {author.title}
+      </p>
+      <ul className={s.links} data-author>
+        {(author.link ?? []).map(({ label, url }) => (
+          <li key={url}>
+            <a href={url} rel="noopener me">
+              {label}
+            </a>
+          </li>
+        ))}
+      </ul>
       <p className={s.colophon}>
         <a href="#top" data-top>
           {c.top ?? "Back to the top"}

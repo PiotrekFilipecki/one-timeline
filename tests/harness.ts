@@ -1,8 +1,9 @@
 import type { Page } from "@playwright/test";
 
 // Harness przesunięć układu. Nagrywa boxy widocznych słów i linijek co klatkę, bez zaokrąglania.
-// Box jest liczony WZGLĘDEM SEKCJI rozdziału (closest [data-chapter]) i bez własnej translacji elementu:
-// transform nie zmienia układu, a przypięta sekcja (SCRUB) porusza się względem dokumentu z definicji.
+// Box jest liczony WZGLĘDEM SEKCJI rozdziału (closest [data-chapter]) i bez translacji elementu ani jego
+// przodków w sekcji (parallax stopki): transform nie zmienia układu, a przypięta sekcja (SCRUB) i treść
+// smoothera poruszają się względem dokumentu z definicji.
 // Liczą się tylko elementy w kadrze i widoczne (jak w CLS). Gotowy na hover/focus (snapshotBoxes + diffBoxes).
 
 export const WIDTHS = [360, 390, 768, 1024, 1280, 1440, 1920] as const;
@@ -21,14 +22,18 @@ const keyScript = () => {
     if (cs.visibility === "hidden" || cs.opacity === "0" || cs.display === "none") return null;
     const r = el.getBoundingClientRect();
     if (r.bottom < 0 || r.top > window.innerHeight) return null;
-    const section = el.closest("[data-chapter]")?.getBoundingClientRect() ?? { x: 0, y: 0 };
+    const sectionEl = el.closest("[data-chapter]");
+    const section = sectionEl?.getBoundingClientRect() ?? { x: 0, y: 0 };
+    // Translacje własne i przodków aż do sekcji (parallax stopki, numer): transform nie zmienia układu.
     let dx = 0;
     let dy = 0;
-    const t = cs.transform;
-    if (t && t !== "none") {
-      const m = new DOMMatrixReadOnly(t);
-      dx = m.e;
-      dy = m.f;
+    for (let node: Element | null = el; node && node !== sectionEl; node = node.parentElement) {
+      const t = getComputedStyle(node).transform;
+      if (t && t !== "none") {
+        const m = new DOMMatrixReadOnly(t);
+        dx += m.e;
+        dy += m.f;
+      }
     }
     return [r.x - dx - section.x, r.y - dy - section.y, r.width, r.height] as Box;
   };

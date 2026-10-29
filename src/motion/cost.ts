@@ -82,7 +82,10 @@ export function createCost(root: HTMLElement): CostScene {
     ema = ema ? ema * 0.8 + dt * 0.2 : dt;
     if (ema > COST.budget) over++;
     else over = 0;
-    if (over >= COST.window) setJank(true);
+    // Czerwień tylko w trybie left/top: transform jest grupą kontrolną, a liczba ms zostaje prawdziwa w obu.
+    // (v7.1: smoother + ziarno podniosły koszt klatki tak, że 4 równoległe przeglądarki w testach
+    // przekraczały budżet w trybie transform; czerwień ma mówić o left/top, nie o obciążeniu maszyny.)
+    if (over >= COST.window && mode !== "transform") setJank(true);
     else if (ema <= COST.budget && mode === "transform") setJank(false);
     show(ema, now);
   };

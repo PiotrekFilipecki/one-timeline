@@ -80,3 +80,14 @@ Wyjścia mniej więcej o połowę krótsze od wejść.
 - Reduced motion: każdy element w stanie spoczynku, bez splitu, bez openera, bez pętli; kolory zostają, cięcia zastępuje natychmiastowa zmiana pola.
 - Pętla dłuższa niż 5 s ma pauzę.
 - Jeden właściciel transformu na element: efekty pointer/ambient zatrzymuj przed wyjściem.
+
+## v7.1 (29.10.2026): plakat z jajem
+
+Werdykt Piotrka po v7: kolory i typografia tak, ruch nie („słaba choreografia i smoothness, brak smooth scrollingu, elementów na boki, dekoracji"). Reguły niżej zmieniają v7 świadomie; wszystko powyżej dalej obowiązuje tam, gdzie nie jest tu nadpisane.
+
+- **Ziarno papieru.** Jedyny wyjątek od „dwóch farb na klatkę": statyczny kafelek szumu (`public/grain.png`, 256 px, multiply, ~9 % krycia) nad całą stroną. To faktura druku riso, nie trzeci kolor: nic nie jest tweenowane, kontrasty liczone z palety zostają (multiply tylko przyciemnia pole o ≤ 9 %).
+- **Jeden scroller.** ScrollSmoother (`src/motion/scroll.ts`, 1 s) na pointerze; dotyk i reduced motion natywne. Każdy skok dokumentu idzie przez `jumpTo()`, bo pod zakryciem koła treść musi stać tam, gdzie pasek.
+- **Ruch wtórny i kontra.** Elementy mogą jechać na scrollu z inną prędkością niż strona (`data-speed` na stopce, 1.06) i w drugą stronę (numer rozdziału w konturze: ±14 % w poziomie, co drugi w kontrze, pochylenie z prędkości scrolla ≤ 8°). Jedna powierzchnia pochyla się na stronę i nigdy nie jest to tekst do czytania.
+- **Dekoracje grają.** Plakat ma oprócz słowa jeden element dekoracyjny, który wspiera komunikat i też się animuje (P5a: numer w konturze; P5b: blob-bohater z własną fakturą i dekoracje SVG rysowane / morfowane).
+- **Blob-bohater** (P5b): jeden morfujący kształt wędruje przez rozdziały i przybiera formę pojęcia. Ma własny pattern w farbie typografii, animowany w trakcie morfu (patternTransform). Pluginy: DrawSVG, MorphSVG, MotionPath (darmowe od gsap 3.13).
+- Pokrętła Locka po zmianie: wariancja 8 → 8, ruch 8 → 9 (więcej warstw naraz, nadal jeden występ główny), gęstość 3 → 4.

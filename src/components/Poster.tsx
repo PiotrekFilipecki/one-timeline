@@ -3,7 +3,9 @@ import { chapter, paintVars, type ChapterId } from "@/lib/palette";
 import s from "./Poster.module.scss";
 
 // Prymitywy plakatu. Każdy rozdział to Field z dokładnie dwiema farbami ustawionymi inline
-// z palette.ts (działa bez JS). Nazwy mówią, co widać: Field, Index, Word, Line, Code.
+// z palette.ts (działa bez JS). Nazwy mówią, co widać: Field, Index, Numeral, Word, Line, Code.
+// v7.1: etykieta obrócona wzdłuż lewej krawędzi, numer rozdziału w konturze za sceną (jedzie na scrollu),
+// stopka jako bilet z lekkim parallaxem (data-speed czyta ScrollSmoother; SCRUB jest przypięty, bez).
 
 export function Field({ id, title, children }: { id: ChapterId; title: string; children: ReactNode }) {
   const c = chapter(id);
@@ -17,6 +19,10 @@ export function Field({ id, title, children }: { id: ChapterId; title: string; c
       <p className={s.index} data-line="index" data-fonts-wait>
         {c.index === 0 ? title : `0${c.index} ${title}`}
       </p>
+      {/* Numer w konturze: hero dostaje `tl` (zmienna, w której żyje cała strona). Dekoracja, poza drzewem a11y. */}
+      <span className={s.numeral} data-numeral data-fonts-wait aria-hidden="true">
+        {c.index === 0 ? "tl" : String(c.index).padStart(2, "0")}
+      </span>
       {children}
     </section>
   );
@@ -40,10 +46,10 @@ export function Word({ as: Tag = "h2", name, style, children }: { as?: "h1" | "h
   );
 }
 
-/** Stopka plakatu: jedna linijka EN i linijki kodu. */
-export function Foot({ children }: { children: ReactNode }) {
+/** Stopka plakatu: jedna linijka EN i linijki kodu. `speed` = parallax ScrollSmoothera (1 = bez). */
+export function Foot({ children, speed = 1.06 }: { children: ReactNode; speed?: number }) {
   return (
-    <div className={s.foot} data-fonts-wait>
+    <div className={s.foot} data-fonts-wait data-speed={speed === 1 ? undefined : speed}>
       {children}
     </div>
   );
