@@ -1,6 +1,6 @@
 # STATUS · One Timeline v7
 
-**Faza:** v7.1 gotowe do oceny (29.10.2026, wieczór). Trzy PR-y czekają na merge Piotrka, w kolejności: [#1](https://github.com/PiotrekFilipecki/one-timeline/pull/1) `v7.1/scroll-grain-grid` (ScrollSmoother, ziarno, siatka, copy, favicon, stopka z socialami, SEO) → [#2](https://github.com/PiotrekFilipecki/one-timeline/pull/2) `v7.1/blob` (blob-bohater z rastrem, DrawSVG / MorphSVG / MotionPath w każdym rozdziale) → [#3](https://github.com/PiotrekFilipecki/one-timeline/pull/3) `v7.1/polish` (stopka gra ze słowem, nagrania, FINGERPRINT, Exit Check 13/13). Klasyfikator auto-mode blokuje `gh pr merge`. Devlogi: `docs/devlog/P5a…P5c`. Produkcja (`one-timeline.vercel.app`) do merge PR 1 pokazuje v7.
+**Faza:** v7.1 na produkcji (29.10.2026, wieczór): `main` = `6c4eff8` (fast-forward przez PR #1 → #3 na polecenie Piotrka; #1 merged, #2 i #3 zamknięte, bo ich commity weszły razem), https://one-timeline.vercel.app wdrożone i sprawdzone (smoother, 8 blobów, ziarno, linijka hero, OG, JSON-LD, 4 linki autora, zero błędów). Piotrek testuje. Devlogi: `docs/devlog/P5a…P5c`.
 
 ## Gotowość do wdrożenia
 - Build statyczny (`next build`, trasa `/` prerenderowana), zero env, zero backendu. Vercel: `vercel --prod`. VPS: `npm run build && npm run start -p 3000` za reverse proxy. Decyzja: Piotrek.
