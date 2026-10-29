@@ -58,6 +58,14 @@ export type ChapterController = {
 
 let performer: ChapterController | null = null;
 
+/** Kolejka przygotowań rozdziałów pod kadrem: każdy następny buduje intro o klatkę później. */
+let deferred = 0;
+export const yieldFrames = (n: number): Promise<void> =>
+  new Promise((r) => {
+    const step = (k: number) => (k <= 0 ? r() : requestAnimationFrame(() => step(k - 1)));
+    step(n);
+  });
+
 /** Nowy występ zdejmuje poprzedni ze sceny: skok do spoczynku, nigdy kolejka. */
 function claimStage(next: ChapterController): void {
   if (performer && performer !== next && performer.phase === "intro") performer.rest();
@@ -224,11 +232,19 @@ export function createChapter(opts: ChapterOptions): ChapterController {
   }
   setPhase("start");
 
-  /** Po fontach: stan startowy na DOM, bramka oddana, potem decyzja z pozycji w kadrze. */
+  /** Po fontach: stan startowy na DOM, bramka oddana, potem decyzja z pozycji w kadrze.
+   *  Rozdział pod kadrem oddaje bramkę od razu (nie jest widoczny) i buduje intro o kilka klatek później,
+   *  żeby start strony nie robił jednej długiej klatki ze wszystkich splitów naraz. */
   const prepare = async () => {
     await fontsReady(fontWait);
     if (destroyed) return;
     if (prefersReducedMotion()) return rest();
+    if (root.getBoundingClientRect().top >= window.innerHeight) {
+      handOff(owner);
+      await yieldFrames(++deferred);
+      // Cięcie mogło już zagrać ten rozdział (szybki scroll tuż po starcie): nie nadpisuj trwającego intro.
+      if (destroyed || phase !== "start") return;
+    }
     const tl = buildIntro();
     if (!tl) return rest();
     tl.pause(0);

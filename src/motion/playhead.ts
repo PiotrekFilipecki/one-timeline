@@ -94,7 +94,11 @@ export function attachPlayhead({ el, track, target: chapter, step = 2 }: Playhea
     e.preventDefault();
     if (k === "home") set(0);
     else if (k === "end") set(100);
-    else set((chapter.held() || chapter.progress ? (chapter.progress ? chapter.progress() * 100 : value) : 100) + k);
+    else {
+      // Baza strzałki: realny progress celu (scroll), bieżąca wartość w trakcie seeku, inaczej koniec (100).
+      const base = chapter.progress ? chapter.progress() * 100 : chapter.held() ? value : 100;
+      set(base + k);
+    }
   };
   const blur = () => {
     if (chapter.held()) release();

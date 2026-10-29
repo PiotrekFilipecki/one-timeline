@@ -9,7 +9,11 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"]],
   use: { baseURL: "http://localhost:3124", trace: "retain-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } }],
+  projects: [
+    { name: "chromium", testIgnore: /perf\.spec/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    // Pomiary (fps, LCP, długie klatki) dopiero po reszcie, same na maszynie: równoległe workery fałszują czasy.
+    { name: "perf", testMatch: /perf\.spec/, dependencies: ["chromium"], use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+  ],
   webServer: {
     command: "npm run build && npm run start -- -p 3124",
     url: "http://localhost:3124",

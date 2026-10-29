@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# One Timeline
 
-## Getting Started
+Jedna strona o GSAP timeline, która sama jest dowodem: osiem pełnoekranowych plakatów w dwukolorowym druku, a każde pojęcie (sequence, overlap, ease, stagger, scrub, reverse, cost, yours) odgrywa słowo, które je nazywa. Jeden variable font (Anybody) jest aktorem; kolor zmienia się wyłącznie cięciem przez literę. Treść strony po angielsku, dokumentacja po polsku.
 
-First, run the development server:
+## Uruchomienie
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev                  # http://localhost:3000
+npm run dev -- -H 0.0.0.0    # z telefonu: http://<IP Maca>:3000 (ipconfig getifaddr en0)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Wersje przypięte w `package.json`: Next 16.4.3, gsap 3.15.0, @gsap/react 2.1.2, sass 1.106.1, @playwright/test 1.64.1. Nie podbijać bez wpisu w devlogu.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Testy i bramki
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint && npx tsc --noEmit && npm run build
+npm test                     # Playwright przeciw buildowi produkcyjnemu (port 3124); buduje i startuje sam
+npm run shots p4             # screenshoty i nagrania do docs/media/p4/
+```
 
-## Learn More
+Co sprawdza `npm test` (`tests/`): kontrasty palety liczone wzorem WCAG; 0 przesunięć układu na 7 szerokościach przez intro hero, hover i focus, każdy rozdział i przewijanie SCRUB (`harness.ts`); łańcuch kolorów przez wszystkie cięcia; pozycje kopii EASE vs `gsap.parseEase`; fps przy 4× CPU; COST w trybie left/top przy 12× CPU; YOURS (walidacja, Play, Reverse, Copy); pętla; strona bez JS i z reduced motion; ścieżka klawiaturą i widoczny focus; LCP, CLS i rozmiar JS.
 
-To learn more about Next.js, take a look at the following resources:
+## Gdzie co jest
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `MOTION.md`: wiążący brief ruchu (osobowość, krzywe `beat` / `beat-exit`, czasy, paleta, reguły). Czytać przed każdą zmianą animacji.
+- `docs/PLAN.md`: rozdziały, Lock, fazy. `docs/PROMPTY.md`: prompty faz P0–P4. `docs/COPY.md`: jedyne źródło treści.
+- `docs/adr/0001-architektura.md`: dlaczego jedna strona, kontroler per rozdział, SCRUB jako jedyny scrub, natywny scroll.
+- `docs/devlog/P0…P4`: decyzje, pomiary, lekcje każdej fazy. `docs/STATUS.md`: stan i bramki. `docs/FINGERPRINT.md`: odcisk palca v7.
+- `src/lib/palette.ts`: paleta (jedno źródło koloru, zmienne CSS na `[data-chapter]`). `src/motion/`: rdzeń ruchu (`register`, `boot`, `chapter`, `split`, `cut`, `cuts`, `playhead`, buildery rozdziałów). `src/chapters/`: osiem rozdziałów jako Server Components. `src/components/*Motion.tsx`: klienci, którzy odgrywają stan spoczynku z serwera.
+- `CLAUDE.md`: zasady repo dla kolejnych sesji.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Zasady w skrócie
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+SCSS Modules, zero Tailwinda. GSAP tylko przez `src/motion/`. SSR renderuje spoczynek, JS go odgrywa; bez JS strona jest czytelna jako osiem plakatów. Każda faza kończy się testami, screenshotami obejrzanymi przez model i devlogiem.

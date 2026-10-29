@@ -72,14 +72,21 @@ export async function installRecorder(page: Page, { selector = TRACKED, ms = 250
 
 /** Nowe okno nagrywania na już załadowanej stronie (kolejne rozdziały, SCRUB). */
 export async function record(page: Page, { selector = TRACKED, ms = 3000 } = {}): Promise<void> {
+  await ensureKeys(page);
   await page.evaluate(recorderScript, { selector, ms });
 }
 
 export const readSamples = (page: Page): Promise<Sample[]> => page.evaluate(() => (window as Win).__layout ?? []);
 
+/** Funkcje kluczy i boxów na stronie, gdy test nie instalował rekordera przed goto. */
+const ensureKeys = async (page: Page): Promise<void> => {
+  if (!(await page.evaluate(() => typeof (window as Win).__layoutBox === "function"))) await page.evaluate(keyScript);
+};
+
 /** Jednorazowy zrzut boxów (do hover/focus: zrzut przed, akcja, zrzut po). */
-export const snapshotBoxes = (page: Page, selector: string = TRACKED): Promise<Record<string, Box>> =>
-  page.evaluate((selector) => {
+export const snapshotBoxes = async (page: Page, selector: string = TRACKED): Promise<Record<string, Box>> => {
+  await ensureKeys(page);
+  return page.evaluate((selector) => {
     const w = window as Win;
     const boxes: Record<string, Box> = {};
     for (const el of Array.from(document.querySelectorAll(selector))) {
@@ -88,6 +95,7 @@ export const snapshotBoxes = (page: Page, selector: string = TRACKED): Promise<R
     }
     return boxes;
   }, selector);
+};
 
 /**
  * Klucze, które się przesunęły, z deltami. Bez zaokrąglania do pikseli. EPS = 0.01 px: poniżej jednostki
@@ -131,7 +139,8 @@ export async function cutTo(page: Page, id: string, { settle = 8000 } = {}): Pro
   const top = await page.locator(`[data-chapter="${id}"]`).evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
   const vh = page.viewportSize()!.height;
   await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), top - vh * 0.75);
-  await page.waitForFunction((id) => document.documentElement.getAttribute(`data-cut-${id}`) === "after", id, { timeout: 5000 });
+  // 10 s: cięcie trwa 0.6 s, ale przy 4 równoległych workerach klatki bywają rzadkie.
+  await page.waitForFunction((id) => document.documentElement.getAttribute(`data-cut-${id}`) === "after", id, { timeout: 10000 });
   await page
     .waitForFunction((id) => {
       const el = document.querySelector(`[data-chapter="${id}"]`) as HTMLElement | null;

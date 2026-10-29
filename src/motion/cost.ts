@@ -87,7 +87,7 @@ export function createCost(root: HTMLElement): CostScene {
     show(ema, now);
   };
 
-  const orbit = (now: number) => {
+  const orbit = () => {
     if (!split) return;
     const chars = split.chars;
     angle += (COST.rps * 2 * Math.PI * gsap.ticker.deltaRatio(60)) / 60;
@@ -120,13 +120,12 @@ export function createCost(root: HTMLElement): CostScene {
         }
       }
     });
-    void now;
   };
 
   const tick = () => {
     const now = performance.now();
     measure(now);
-    if (!paused) orbit(now);
+    if (!paused) orbit();
   };
 
   const start = () => {

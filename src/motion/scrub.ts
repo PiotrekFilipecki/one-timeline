@@ -7,6 +7,7 @@ import { ScrollTrigger, gsap, registerMotion } from "./register";
 import { prefersReducedMotion } from "./reduced-motion";
 import { fontsReady } from "./boot";
 import { splitLetters, type Split } from "./split";
+import { yieldFrames } from "./chapter";
 
 export const SCRUB_SMOOTH = 0.6;
 
@@ -32,6 +33,9 @@ export function createScrub(root: HTMLElement): ScrubScene {
   const build = async () => {
     await fontsReady(1500);
     if (destroyed || prefersReducedMotion()) return;
+    // Pod kadrem przy starcie: split i pin o kilka klatek później niż rozdziały wyżej (patrz chapter.ts).
+    if (root.getBoundingClientRect().top >= window.innerHeight) await yieldFrames(6);
+    if (destroyed) return;
     split = splitLetters(word, { pinTo: { stretch: 150, weight: 900 } });
     tl = gsap.timeline({ paused: true, defaults: { ease: "none", overwrite: "auto" } });
     tl.fromTo(split.chars, { fontStretch: "50%", fontWeight: 100 }, { fontStretch: "150%", fontWeight: 900, duration: 1 }, 0);
