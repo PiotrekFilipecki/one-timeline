@@ -38,4 +38,4 @@ Model: Fable 5.1. Drugi PR v7.1 (`v7.1/blob`, na gałęzi PR-a 1). Skille: `anim
 
 ## Następne (PR 3)
 
-Szlif choreografii (podpis i bilet kodu wchodzą z masek razem ze słowem, zamiast stać), nagrania całej strony, FINGERPRINT v7.1, Exit Check, review kodu, dopisanie wyjątków do MOTION.md (kadencje hero).
+Zrobione w `P5c-szlif.md`: stopka gra ze słowem, nagrania, FINGERPRINT v7.1, Exit Check, review, wyjątek kadencji hero w MOTION.md.

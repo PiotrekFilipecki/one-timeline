@@ -17,8 +17,8 @@ export function ReverseMotion() {
       root,
       autoplay: false,
       build: {
-        intro: () => {
-          const built = reverseIntro(root);
+        intro: (ctx) => {
+          const built = reverseIntro(root, ctx);
           revert = built.revert;
           return built.timeline;
         },

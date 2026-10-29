@@ -5,6 +5,7 @@
 
 import { BEAT, gsap } from "./register";
 import { blobMorph, blobParts, blobRevert } from "./blob";
+import { footIntro } from "./foot";
 
 export const STAGGER_PASS = 1.6;
 export const STAGGER_FROMS = ["center", "edges", "random"] as const;
@@ -29,12 +30,15 @@ function parts(root: HTMLElement) {
 
 export type StaggerIntro = { timeline: gsap.core.Timeline; revert: () => void; grid: { cols: number; rows: number; cells: number } };
 
-export function staggerIntro(root: HTMLElement): StaggerIntro {
+export function staggerIntro(root: HTMLElement, { first = true }: { first?: boolean } = {}): StaggerIntro {
   const p = parts(root);
   const tl = gsap.timeline({ paused: true, defaults: { overwrite: "auto" } });
   const touched = [...p.cells, ...(p.playhead ? [p.playhead] : [])];
+  let foot: (() => void) | null = null;
   const revert = () => {
     gsap.set(touched, { clearProps: "transform,transformOrigin,willChange" });
+    foot?.();
+    foot = null;
     if (p.blob) blobRevert(p.blob);
     // Duchy mają atrybut transform (translate): rotation 0 zamiast clearProps, żeby nie zjechały na x = 0.
     if (p.dominoes.length) gsap.set(p.dominoes, { rotation: 0 });
@@ -58,6 +62,7 @@ export function staggerIntro(root: HTMLElement): StaggerIntro {
       }
     });
     tl.addLabel("end", STAGGER_FROMS.length * STAGGER_PASS - 0.2);
+    foot = footIntro(tl, root, 0.4, { first }).revert;
   } catch (error) {
     tl.kill();
     revert();

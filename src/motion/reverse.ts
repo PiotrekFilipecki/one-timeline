@@ -7,6 +7,7 @@
 import { gsap } from "./register";
 import { splitLetters, type Split } from "./split";
 import { blobMorph, blobParts, blobRevert } from "./blob";
+import { footIntro } from "./foot";
 
 export const REVERSE = { enter: 0.8, hold: 0.5, back: 0.8, gap: 0.5 } as const;
 
@@ -24,18 +25,21 @@ function parts(root: HTMLElement) {
 
 export type ReverseIntro = { timeline: gsap.core.Timeline; revert: () => void };
 
-export function reverseIntro(root: HTMLElement): ReverseIntro {
+export function reverseIntro(root: HTMLElement, { first = true }: { first?: boolean } = {}): ReverseIntro {
   const p = parts(root);
   const splits: Split[] = [];
   const rows: gsap.core.Timeline[] = [];
   const tl = gsap.timeline({ paused: true, defaults: { overwrite: "auto" } });
   const masked = [p.a, p.b];
+  let foot: (() => void) | null = null;
   const revert = () => {
     for (const r of rows) r.kill();
     rows.length = 0;
     while (splits.length) splits.pop()!.revert();
     for (const m of masked) delete m.dataset.mask;
     if (p.playhead) gsap.set(p.playhead, { clearProps: "transform" });
+    foot?.();
+    foot = null;
     if (p.blob) blobRevert(p.blob);
     if (p.spiral) gsap.set(p.spiral, { clearProps: "strokeDasharray,strokeDashoffset" });
   };
@@ -54,6 +58,7 @@ export function reverseIntro(root: HTMLElement): ReverseIntro {
     const t2 = d + REVERSE.hold;
     const t3 = t2 + d + REVERSE.gap;
     tl.addLabel("enter", t1).addLabel("reverse", t2).addLabel("again", t3);
+    foot = footIntro(tl, root, t1 + 0.4, { first }).revert;
     tl.add(rowA.tweenFromTo(0, d), t1).add(rowB.tweenFromTo(0, d), t1);
     // Wstecz: ten sam timeline cofany. A pełznie (expo.in), B zachowuje expo.out (easeReverse).
     tl.add(rowA.tweenFromTo(d, 0), t2).add(rowB.tweenFromTo(d, 0), t2);

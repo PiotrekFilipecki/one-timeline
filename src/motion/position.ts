@@ -8,6 +8,7 @@ import { BEAT, gsap } from "./register";
 import { splitLetters, type Split } from "./split";
 import { JUMP, jumpWithWeight } from "./jump";
 import { blobMorph, blobParts, blobRevert } from "./blob";
+import { footIntro } from "./foot";
 
 const CLEAR = "transform,transformOrigin,opacity,visibility,fontStretch,fontWeight,clipPath,willChange";
 
@@ -15,12 +16,10 @@ export type PositionIntro = { timeline: gsap.core.Timeline; revert: () => void }
 
 function parts(root: HTMLElement) {
   const one = (sel: string) => root.querySelector<HTMLElement>(sel)!;
-  const all = (sel: string) => Array.from(root.querySelectorAll<HTMLElement>(sel));
   return {
     top: one('[data-word="sequence"]'),
     bottom: one('[data-word="overlap"]'),
     playhead: root.querySelector<HTMLElement>("[data-playhead]"),
-    code: all('[data-line="code"] code'),
     stage: one("[data-stage]"),
     blob: blobParts(root),
   };
@@ -30,11 +29,14 @@ export function positionIntro(root: HTMLElement, { first }: { first: boolean }):
   const p = parts(root);
   const splits: Split[] = [];
   const touched = new Set<HTMLElement>();
+  let foot: (() => void) | null = null;
   const revert = () => {
     while (splits.length) splits.pop()!.revert();
     if (touched.size) gsap.set([...touched], { clearProps: CLEAR });
     touched.clear();
     if (p.blob) blobRevert(p.blob);
+    foot?.();
+    foot = null;
   };
   const tl = gsap.timeline({ paused: true, defaults: { overwrite: "auto" } });
   try {
@@ -71,11 +73,8 @@ export function positionIntro(root: HTMLElement, { first }: { first: boolean }):
       );
     }
 
-    // Linijki kodu: linie w maskach, z dołu.
-    if (first && p.code.length) {
-      for (const c of p.code) touched.add(c);
-      tl.fromTo(p.code, { yPercent: 110 }, { yPercent: 0, duration: 0.4, ease: BEAT, stagger: 0.06 }, topEnd - 0.1);
-    }
+    // Stopka (podpis, linijki kodu) wchodzi, gdy górny rząd ląduje.
+    foot = footIntro(tl, root, topEnd - 0.1, { first }).revert;
   } catch (error) {
     tl.kill();
     revert();

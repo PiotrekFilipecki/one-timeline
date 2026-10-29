@@ -1,4 +1,4 @@
-# FINGERPRINT · One Timeline v7
+# FINGERPRINT · One Timeline v7 → v7.1
 
 Odcisk palca do przeniesienia do `atelier/` (rejestr odcisków). Żeby kolejna strona nie powtórzyła tej.
 
@@ -40,3 +40,15 @@ Bramka pierwszej klatki (`data-motion-boot`, deadline 2 s); box słowa trzymany 
 ## Czego NIE powtarzać następnym razem
 
 Osiem nasyconych pól w łańcuchu; koło rosnące z litery; onion skin z konturem; siatka liter; hairline głowicy. To są znaki tej strony.
+
+## v7.1 (29.10.2026): plakat z jajem
+
+Po werdykcie autora (kolory tak, ruch nie) odcisk dostał drugą warstwę. Zostaje sygnatura (cięcie przez literę), dochodzi bohater i dekoracje.
+
+- **Bohater: blob z rastrem.** Jeden kształt (kropla) wędruje przez rozdziały i morfuje w pojęcie: bilet (POSITION), kulka na krzywej (EASE), domino (STAGGER), jog wheel (SCRUB), ślimak (REVERSE), płomień (COST po budżecie), wybuch (YOURS). Wypełnienie: rastr kropek w farbie typografii; w trakcie każdego morfu pattern robi pełny obrót i puchnie, po czym wraca do stanu z serwera. Dalej dwie farby.
+- **Dekoracje, które grają:** linijka master timeline'u pod zdaniem hero rysowana w czasie rzeczywistym; krzywa EASE rysowana i morfowana z przyciskami; duchy domina; spirala muszli; numer rozdziału w konturze jadący w kontrze do scrolla ze skosem z prędkości.
+- **Scroll:** ScrollSmoother 1 s (dotyk natywny), parallax stopki 1.06, progi cięć liczone od celu scrolla.
+- **Ziarno papieru:** statyczny kafelek, multiply 9 %; jedyny wyjątek od „dwóch farb".
+- **Układ:** etykieta pionowo wzdłuż krawędzi, numer w konturze za sceną, kod jako bilet z perforacją, dyptyki zsunięte po przekątnej z nachodzeniem.
+- **Ton:** copy z mrugnięciem („Mind the gap", „Yes, that one", „sets it on fire"), favicon z cięciem w 64 px, `tl` w konturze pod zdaniem.
+- **Czego nie powtarzać po v7.1:** rastr kropek jako faktura bohatera, ślimak jako żart o ease-out, numer w konturze za sceną, bilet z perforacją na kod. Następny projekt bierze inną fakturę (kreskowanie, półtony liniowe) i innego bohatera.

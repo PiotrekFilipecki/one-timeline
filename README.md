@@ -17,7 +17,7 @@ Wersje przypięte w `package.json`: Next 16.4.3, gsap 3.15.0, @gsap/react 2.1.2,
 ```bash
 npm run lint && npx tsc --noEmit && npm run build
 npm test                     # Playwright przeciw buildowi produkcyjnemu (port 3124); buduje i startuje sam
-npm run shots p5a            # screenshoty do docs/media/p5a/
+npm run shots p5             # screenshoty i nagrania całej strony do docs/media/p5/
 node scripts/grain.mjs       # regeneruje public/grain.png (ziarno papieru)
 ```
 

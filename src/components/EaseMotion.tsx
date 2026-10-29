@@ -20,8 +20,8 @@ export function EaseMotion() {
       root,
       autoplay: false,
       build: {
-        intro: () => {
-          const built = easeIntro(root);
+        intro: (ctx) => {
+          const built = easeIntro(root, ctx);
           revert = built.revert;
           return built.timeline;
         },

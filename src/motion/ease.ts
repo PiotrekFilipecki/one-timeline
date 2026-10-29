@@ -7,6 +7,7 @@ import { BEAT, gsap } from "./register";
 import { EASE_NAMES, EASE_REST, layout, type EaseName } from "@/lib/eases";
 import { easeCurvePath } from "@/lib/blob";
 import { blobParts, blobRevert, patternPulse, type BlobParts } from "./blob";
+import { footIntro } from "./foot";
 
 export const EASE_STEP = 1.0;
 export const EASE_FLY = 0.6;
@@ -57,13 +58,16 @@ function targets(root: HTMLElement, name: EaseName): number[] {
 
 export type EaseIntro = { timeline: gsap.core.Timeline; revert: () => void };
 
-export function easeIntro(root: HTMLElement): EaseIntro {
+export function easeIntro(root: HTMLElement, { first = true }: { first?: boolean } = {}): EaseIntro {
   const p = parts(root);
   const tl = gsap.timeline({ paused: true, defaults: { overwrite: "auto" } });
   const touched = [...p.copies, ...(p.playhead ? [p.playhead] : [])];
+  let foot: (() => void) | null = null;
   const revert = () => {
     gsap.set(touched, { clearProps: "transform,willChange" });
     revertScene(p);
+    foot?.();
+    foot = null;
   };
   try {
     // Start: wszystkie kopie w stosie na lewej krawędzi. Potem kolejne układy, na beat, z lekkim opóźnieniem po kopii.
@@ -82,6 +86,8 @@ export function easeIntro(root: HTMLElement): EaseIntro {
       if (p.curve && i > 0) tl.to(p.curve, { morphSVG: easeCurvePath(name), duration: CURVE.morph, ease: "power2.inOut" }, at - CURVE.morph);
       if (p.ball) ride(tl, p.ball, name, at + (i === 0 ? 0.2 : 0), EASE_FLY);
     });
+    // Podpis i przyciski wchodzą z pierwszym przelotem.
+    foot = footIntro(tl, root, 0.3, { first }).revert;
     const end = (EASE_NAMES.length - 1) * EASE_STEP + EASE_FLY + 0.02 * p.copies.length;
     tl.addLabel("end", end);
     if (p.playhead) {

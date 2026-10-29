@@ -1,6 +1,6 @@
 # STATUS · One Timeline v7
 
-**Faza:** v7.1 w toku (29.10.2026). PR 1 (`v7.1/scroll-grain-grid`: ScrollSmoother, ziarno, siatka, copy, favicon, stopka autora z socialami, SEO + JSON-LD + OG) i PR 2 (`v7.1/blob`, na gałęzi PR-a 1: blob-bohater z animowanym rastrem, DrawSVG / MorphSVG / MotionPath w każdym rozdziale) gotowe do oceny na preview Vercela; merge zostaje Piotrkowi (klasyfikator auto-mode blokuje merge bez review). PR 3 (szlif, nagrania, FINGERPRINT) w toku. Devlog: `docs/devlog/P5a-scroll-ziarno-siatka.md`. v7 (P0–P4) zamknięte, werdykt Piotrka: kolory tak, ruch do poprawy.
+**Faza:** v7.1 gotowe do oceny (29.10.2026, wieczór). Trzy PR-y czekają na merge Piotrka, w kolejności: [#1](https://github.com/PiotrekFilipecki/one-timeline/pull/1) `v7.1/scroll-grain-grid` (ScrollSmoother, ziarno, siatka, copy, favicon, stopka z socialami, SEO) → [#2](https://github.com/PiotrekFilipecki/one-timeline/pull/2) `v7.1/blob` (blob-bohater z rastrem, DrawSVG / MorphSVG / MotionPath w każdym rozdziale) → [#3](https://github.com/PiotrekFilipecki/one-timeline/pull/3) `v7.1/polish` (stopka gra ze słowem, nagrania, FINGERPRINT, Exit Check 13/13). Klasyfikator auto-mode blokuje `gh pr merge`. Devlogi: `docs/devlog/P5a…P5c`. Produkcja (`one-timeline.vercel.app`) do merge PR 1 pokazuje v7.
 
 ## Gotowość do wdrożenia
 - Build statyczny (`next build`, trasa `/` prerenderowana), zero env, zero backendu. Vercel: `vercel --prod`. VPS: `npm run build && npm run start -p 3000` za reverse proxy. Decyzja: Piotrek.
@@ -8,7 +8,7 @@
 
 ## Stan repo
 - `main` wypchnięty na https://github.com/PiotrekFilipecki/one-timeline (prywatne; Piotrek zrobił `gh repo create --push` ręcznie, bo klasyfikator auto-mode blokował push).
-- Lint 0 · tsc 0 · build 0 · `npm test` 53/53 (16 skipped = shots; projekt `perf` po `chromium`; 10 testów jednostkowych czystych funkcji w `tests/unit.spec.ts`) · media: p0 16 PNG · p1 26 PNG + 2 webm · p2 46 PNG + 2 webm · p3 30 PNG + 2 webm · p4 16 PNG + 2 nagrania całej strony.
+- Lint 0 · tsc 0 · build 0 · `npm test` 57/57 (18 skipped = shots; projekt `perf` po `chromium`; 3 workery; `unit` i `blob` obok testów w przeglądarce) · media: p0 16 PNG · p1 26 PNG + 2 webm · p2 46 PNG + 2 webm · p3 30 PNG + 2 webm · p4 16 PNG + 2 nagrania całej strony.
 
 ## Co istnieje
 - 8 plakatów (`src/chapters/*`), treść z `docs/COPY.md`, kolory z `src/lib/palette.ts` (inline na `[data-chapter]`).

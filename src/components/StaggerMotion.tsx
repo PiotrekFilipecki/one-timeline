@@ -17,8 +17,8 @@ export function StaggerMotion() {
       root,
       autoplay: false,
       build: {
-        intro: () => {
-          const built = staggerIntro(root);
+        intro: (ctx) => {
+          const built = staggerIntro(root, ctx);
           revert = built.revert;
           root.dataset.gridSize = `${built.grid.cols}x${built.grid.rows}`;
           return built.timeline;
