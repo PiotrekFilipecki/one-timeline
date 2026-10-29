@@ -23,7 +23,14 @@ export const CUTS: readonly CutSpec[] = [
   { from: "stagger", to: "scrub", word: '[data-word="stagger"]', index: -1 },
   { from: "scrub", to: "reverse", word: '[data-word="scrub"]', index: 4 },
   { from: "reverse", to: "cost", word: '[data-word="reverse-eased"]', index: 0 },
+  { from: "cost", to: "yours", word: '[data-word="cost"]', index: 1 },
 ];
+
+/** Pętla: ostatnie cięcie (S z YOURS) zalewa kadr różem i przewija na górę do hero w spoczynku. */
+export const LOOP: CutSpec = { from: "yours", to: "hero", word: '[data-word="yours"]', index: -1 };
+
+/** Koniec dokumentu (z marginesem 2 px na zaokrąglenia). */
+export const atDocumentEnd = (): boolean => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
 
 /** Bounding box i-tej widocznej litery w tekście elementu (bez białych znaków). */
 export function letterRect(el: HTMLElement, index: number): DOMRect {
@@ -113,9 +120,44 @@ export function createCuts(overlay: HTMLElement): () => void {
       }),
     );
   }
+  // Pętla do hero: próg = koniec dokumentu; po cięciu wraca do stanu „przed", żeby zagrać znowu.
+  const loopFrom = document.querySelector<HTMLElement>(`[data-chapter="${LOOP.from}"]`);
+  const hero = document.querySelector<HTMLElement>(`[data-chapter="${LOOP.to}"]`);
+  let loop: Cut | null = null;
+  if (loopFrom && hero) {
+    loop = createCut({
+      id: "loop",
+      color: chapter(LOOP.to).bg,
+      rect: () => {
+        const word = loopFrom.querySelector<HTMLElement>(LOOP.word);
+        return word ? letterRect(word, LOOP.index) : loopFrom.getBoundingClientRect();
+      },
+      overlay,
+      next: hero,
+      forwardWhen: atDocumentEnd,
+      backWhen: () => true,
+      resetAfterForward: true,
+      onCovered: () => {
+        window.scrollTo({ top: 0, behavior: "instant" });
+        // Hero w spoczynku: bez ponownego openera i bez replayu zdania.
+        getChapter(LOOP.to)?.rest();
+      },
+      onUncover: () => {},
+      onSettle: onScroll,
+    });
+    cuts.push(loop);
+  }
+  const topLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>("[data-top]"));
+  const onTop = (e: Event) => {
+    if (!loop) return;
+    e.preventDefault();
+    loop.forward();
+  };
+  for (const a of topLinks) a.addEventListener("click", onTop);
   window.addEventListener("scroll", onScroll, { passive: true });
   return () => {
     window.removeEventListener("scroll", onScroll);
+    for (const a of topLinks) a.removeEventListener("click", onTop);
     if (raf) cancelAnimationFrame(raf);
     for (const c of cuts) c.destroy();
   };

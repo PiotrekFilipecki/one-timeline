@@ -1,8 +1,12 @@
 import { copy } from "@/lib/copy";
 import { Code, Field, Foot, Line, Stage, Word } from "@/components/Poster";
+import { CostMotion } from "@/components/CostMotion";
 import s from "@/components/Poster.module.scss";
 
-/** COST: transform vs left/top. W spoczynku liczba pokazuje budżet klatki; P3 podmienia na pomiar. */
+/**
+ * COST: transform vs left/top z odczytem layoutu. Liczba ms na klatkę; po przekroczeniu budżetu pole tnie
+ * się na czerwień (JS ustawia --bg). Bez JS: słowo, budżet klatki i jedno zdanie wyjaśnienia.
+ */
 export function Cost() {
   const c = copy("cost");
   return (
@@ -10,14 +14,28 @@ export function Cost() {
       <Stage>
         <Word name="cost">{c.word}</Word>
         <p className={s.number} data-line="number">
-          {c.number}
+          <span data-ms>{c.number}</span>
           <small>{c.unit}</small>
         </p>
       </Stage>
       <Foot>
-        <Line>{c.line}</Line>
+        <div>
+          <Line>{c.line}</Line>
+          <p className={s.line} data-no-js>
+            {c.nojs}
+          </p>
+          <div className={s.controls} data-needs-js>
+            <button type="button" className={s.easeButton} data-cost-mode aria-pressed="false">
+              {c.toggle ?? "left / top"}
+            </button>
+            <button type="button" className={s.easeButton} data-cost-pause aria-pressed="false">
+              {c.pause ?? "Pause"}
+            </button>
+          </div>
+        </div>
         <Code lines={c.code} />
       </Foot>
+      <CostMotion />
     </Field>
   );
 }

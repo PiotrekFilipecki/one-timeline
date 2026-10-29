@@ -34,6 +34,12 @@ export type CutOptions = {
   onDone?: (direction: "forward" | "back") => void;
   /** Po zakończeniu cięcia koordynator sprawdza progi jeszcze raz. */
   onSettle?: () => void;
+  /** Własny warunek progu w dół (pętla: koniec dokumentu). Domyślnie górna krawędź `next` ≤ 80 % kadru. */
+  forwardWhen?: () => boolean;
+  /** Własny warunek progu w tył. Domyślnie górna krawędź `next` < 20 % kadru. */
+  backWhen?: () => boolean;
+  /** Po cięciu w przód wróć cicho do stanu „przed" (pętla może zagrać znowu). */
+  resetAfterForward?: boolean;
 };
 
 export type Cut = {
@@ -54,7 +60,7 @@ export type Cut = {
 
 export function createCut(opts: CutOptions): Cut {
   registerMotion();
-  const { id, color, rect: letterRect, overlay, next, onCovered, onPassed, onUncover, onDone, onSettle } = opts;
+  const { id, color, rect: letterRect, overlay, next, onCovered, onPassed, onUncover, onDone, onSettle, forwardWhen, backWhen, resetAfterForward = false } = opts;
   let state: "before" | "cutting" | "after" = "before";
   let shown: "before" | "after" = "before";
   let tl: gsap.core.Timeline | null = null;
@@ -72,9 +78,9 @@ export function createCut(opts: CutOptions): Cut {
 
   const vh = () => window.innerHeight;
   const top = () => next.getBoundingClientRect().top;
-  const pastForward = () => top() <= vh() * CUT.forwardAt;
-  const pastBack = () => top() < vh() * CUT.backAt;
-  const nextInView = () => next.getBoundingClientRect().bottom > 0;
+  const pastForward = () => (forwardWhen ? forwardWhen() : top() <= vh() * CUT.forwardAt);
+  const pastBack = () => (backWhen ? backWhen() : top() < vh() * CUT.backAt);
+  const nextInView = () => forwardWhen != null || next.getBoundingClientRect().bottom > 0;
 
   /** Geometria: koło startuje z bounding boxa litery i rośnie, aż zakryje najdalszy róg kadru. */
   const geometry = () => {
@@ -89,6 +95,10 @@ export function createCut(opts: CutOptions): Cut {
   const finish = (direction: "forward" | "back") => {
     state = direction === "forward" ? "after" : "before";
     shown = state;
+    if (direction === "forward" && resetAfterForward) {
+      state = "before";
+      shown = "before";
+    }
     report();
     onDone?.(direction);
     // Po cięciu liczy się realna pozycja dokumentu, nie kolejka zdarzeń z trakcie.
@@ -169,7 +179,7 @@ export function createCut(opts: CutOptions): Cut {
   };
 
   // Stan początkowy z pozycji dokumentu (reload w środku strony): bez odgrywania.
-  if (pastForward()) {
+  if (!resetAfterForward && pastForward()) {
     state = "after";
     shown = "after";
   }

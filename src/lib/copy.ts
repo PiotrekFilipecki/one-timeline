@@ -15,12 +15,23 @@ export type ChapterCopy = {
   marks?: string[];
   number?: string;
   unit?: string;
-  /** Etykiety UI rozdziału (przycisk Replay, slider głowicy). */
+  /** Etykiety UI rozdziału (przycisk Replay, slider głowicy, przełączniki COST, przyciski YOURS). */
   replay?: string;
   playhead?: string;
+  toggle?: string;
+  pause?: string;
+  play?: string;
+  reverse?: string;
+  copy?: string;
+  top?: string;
+  /** Jedno zdanie pokazywane tylko bez JS. */
+  nojs?: string;
+  /** Źródła: "Etykieta | URL". */
+  link?: { label: string; url: string }[];
+  colophon?: string;
 };
 
-const KNOWN = new Set(["title", "word", "word2", "line", "code", "marks", "number", "unit", "replay", "playhead"]);
+const KNOWN = new Set(["title", "word", "word2", "line", "code", "marks", "number", "unit", "replay", "playhead", "nojs", "toggle", "pause", "play", "reverse", "copy", "top", "link", "colophon"]);
 
 let cache: Record<string, ChapterCopy> | undefined;
 
@@ -41,16 +52,20 @@ function parse(src: string): Record<string, ChapterCopy> {
     const [, key, value] = kv;
     if (!KNOWN.has(key)) throw new Error(`COPY.md: unknown key "${key}"`);
     if (key === "code") current.code.push(value);
-    else if (key === "marks") current.marks = value.split(",").map((s) => s.trim());
+    else if (key === "link") {
+      const [label, url] = value.split("|").map((s) => s.trim());
+      (current.link ??= []).push({ label, url });
+    } else if (key === "marks") current.marks = value.split(",").map((s) => s.trim());
     else (current as unknown as Record<string, string>)[key] = value;
   }
   return out;
 }
 
-export function copy(id: ChapterId): ChapterCopy {
+export function copy(id: ChapterId | "sources"): ChapterCopy {
   if (!cache) cache = parse(readFileSync(join(process.cwd(), "docs", "COPY.md"), "utf8"));
   const c = cache[id];
-  if (!c || !c.title || !c.word || !c.line) throw new Error(`COPY.md: chapter "${id}" is missing title, word or line`);
+  if (!c || !c.title) throw new Error(`COPY.md: section "${id}" is missing title`);
+  if (id !== "sources" && (!c.word || !c.line)) throw new Error(`COPY.md: chapter "${id}" is missing word or line`);
   const words = c.line.split(/\s+/).length;
   if (words > 15) throw new Error(`COPY.md: "${id}" line has ${words} words, max 15`);
   return c;

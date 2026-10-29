@@ -35,6 +35,18 @@ html:not([data-js]) [data-needs-js] {
   display: none;
 }
 
+/* Zdanie tylko bez JS (COST, YOURS). */
+html[data-js] [data-no-js] {
+  display: none;
+}
+
+/* COST w stanie jank: czerwień to kontrast tylko display (3.31), więc body znika na czas jank. */
+[data-chapter="cost"][data-jank] [data-line="line"],
+[data-chapter="cost"][data-jank] [data-line="code"],
+[data-chapter="cost"][data-jank] small {
+  visibility: hidden;
+}
+
 /* Opener: osiem pasków widocznych w pierwszej klatce tylko wtedy, gdy JS gra opener
    (<html data-opener="play|skip"> ustawia skrypt bramki; paski to [data-opener-bars]). */
 [data-opener-bars] {

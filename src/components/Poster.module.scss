@@ -379,8 +379,8 @@
 
 /* YOURS: słowo na samym dole, cięte dolną krawędzią. Stopka wędruje nad nie. */
 .field[data-chapter="yours"] .word {
-  /* Pomiar P0: YOURS = 3.51em → 26vw = 91 % kadru. Cięcie ma być tylko dolne, nie prawe. */
-  font-size: 26vw;
+  /* P0: 26vw = 91 % kadru. P3: 22vw ≈ 77 %, żeby linijka tl.to() miała ~300 px miejsca na x bez wypychania liter z kadru. */
+  font-size: 22vw;
 }
 
 .field[data-chapter="yours"] .stage {
@@ -393,4 +393,129 @@
   order: 2;
   align-self: start;
   padding-top: var(--step-3);
+}
+
+/* ---------- P3: COST, YOURS, źródła ---------- */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  margin-top: var(--step-1);
+}
+
+/* YOURS: linijka kodu nad formularzem; pola mono, obrys w kolorze typografii. */
+.yours {
+  display: grid;
+  gap: var(--step-1);
+  justify-self: end;
+  width: min(100%, 44rem);
+
+  @media (max-width: 767px) {
+    justify-self: start;
+  }
+}
+
+.yours .code {
+  justify-self: start;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6em 0.8em;
+  align-items: end;
+
+  @media (max-width: 767px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.form label {
+  display: grid;
+  gap: 0.25em;
+  font-family: var(--font-mono);
+  font-size: var(--step-1);
+  color: var(--body);
+}
+
+.form input,
+.form select {
+  min-width: 0;
+  padding: 0.35em 0.5em;
+  border: 2px solid var(--fg);
+  border-radius: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--body);
+  font-variant-numeric: tabular-nums;
+
+  &:focus-visible {
+    outline: 3px solid var(--fg);
+    outline-offset: 2px;
+  }
+}
+
+.form select option {
+  color: #000;
+}
+
+.form .controls {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.status {
+  grid-column: 1 / -1;
+  min-height: 1.3em;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step-1);
+  color: var(--body);
+}
+
+/* Źródła i kolofon: zieleń, body w mięcie, display (indeks) w różu. */
+.sources {
+  display: grid;
+  gap: var(--step-2);
+  padding: var(--step-3) var(--gutter) var(--step-4);
+  background: var(--bg);
+  color: var(--body);
+}
+
+.links {
+  display: grid;
+  gap: 0.35em;
+  max-width: 48ch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--step-2);
+  line-height: 1.3;
+}
+
+.links a,
+.colophon a {
+  color: var(--body);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.15em;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--fg);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--fg);
+    outline-offset: 3px;
+  }
+}
+
+.colophon {
+  max-width: 48ch;
+  margin: 0;
+  font-size: var(--step-1);
+  line-height: 1.4;
+  color: var(--body);
 }

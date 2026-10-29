@@ -29,8 +29,7 @@ test("every cut lands on the previous chapter's typography color and the next ch
   test.setTimeout(90_000);
   await page.goto("/");
   await page.waitForTimeout(400);
-  // Do pola COST włącznie; cięcie COST → YOURS i pętla to P3.
-  const ids = CHAPTERS.map((c) => c.id).slice(0, 7);
+  const ids = CHAPTERS.map((c) => c.id);
   for (let i = 1; i < ids.length; i++) {
     const from = chapter(ids[i - 1]);
     const to = chapter(ids[i]);
@@ -54,5 +53,5 @@ test("every cut lands on the previous chapter's typography color and the next ch
       expect(parseFloat(stretch)).toBeGreaterThan(140);
     }
   }
-  expect(Number(await page.locator("html").getAttribute("data-cut-plays"))).toBe(6);
+  expect(Number(await page.locator("html").getAttribute("data-cut-plays"))).toBe(7);
 });

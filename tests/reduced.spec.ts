@@ -77,4 +77,13 @@ test("P2 chapters rest without motion: EASE expo.out layout, STAGGER full word, 
   expect(scrub).toEqual({ stretch: "100%", weight: "500", chars: 0 });
   await expect(page.locator('[data-chapter="reverse"]')).toHaveAttribute("data-phase", "rest");
   expect(await page.locator('[data-chapter="reverse"] .ch').count()).toBe(0);
+  // COST: bez orbit, liczba to pomiar spoczynkowy.
+  const cost = page.locator('[data-chapter="cost"]');
+  await cost.evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await expect(cost).toHaveAttribute("data-cost-ready", "");
+  await page.waitForTimeout(600);
+  expect(await cost.locator(".ch").count(), "no split, no orbit").toBe(0);
+  const ms = Number(await cost.getAttribute("data-ms"));
+  expect(ms).toBeGreaterThan(0);
+  expect(await cost.getAttribute("data-jank")).toBeNull();
 });

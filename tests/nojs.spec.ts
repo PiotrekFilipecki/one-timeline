@@ -27,6 +27,17 @@ test("all 8 chapter words are visible in their colors without JavaScript", async
   await expect(page.locator("[data-replay]")).toBeHidden();
   for (const ph of await page.locator("[data-playhead]").all()) await expect(ph).toBeHidden();
   await expect(page.locator("[data-ease]").first()).toBeHidden();
+  // COST i YOURS: treść statyczna z jednym zdaniem wyjaśnienia; kontrolki niewidoczne.
+  await expect(page.locator('[data-chapter="cost"] [data-no-js]')).toBeVisible();
+  await expect(page.locator('[data-chapter="cost"] [data-ms]')).toHaveText("16.7");
+  await expect(page.locator("[data-cost-mode]")).toBeHidden();
+  await expect(page.locator('[data-chapter="yours"] [data-no-js]')).toBeVisible();
+  await expect(page.locator("[data-yours-form]")).toBeHidden();
+  await expect(page.locator("[data-yours-line]")).toContainText("tl.to(");
+  // Źródła: linki prawdziwe, kotwica na górę działa natywnie.
+  expect(await page.locator("[data-sources] a[href^='https://']").count()).toBeGreaterThanOrEqual(8);
+  await page.locator("[data-top]").click();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await expect(page.locator("[data-opener-bars]")).toBeHidden();
   await expect(page.locator("[data-cut]")).toBeHidden();
 });

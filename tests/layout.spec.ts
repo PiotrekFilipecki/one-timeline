@@ -5,7 +5,7 @@ import { WIDTHS, cutTo, diffBoxes, installRecorder, noHorizontalScroll, readSamp
 // i Replay, potem każdy rozdział P2 w trakcie intro po cięciu i SCRUB w trakcie przewijania przez przypięty
 // zakres. Boxy liczone względem sekcji, bez własnej translacji; 0 przesunięć, bez zaokrąglania.
 
-const CHAPTERS_P2 = ["position", "ease", "stagger", "scrub", "reverse"] as const;
+const CHAPTERS_P2 = ["position", "ease", "stagger", "scrub", "reverse", "cost", "yours"] as const;
 
 for (const width of WIDTHS) {
   test(`${width}px: 0 layout shifts through hero, hover/focus, every chapter intro and SCRUB`, async ({ browser }) => {
@@ -53,10 +53,12 @@ for (const width of WIDTHS) {
     // Rozdziały P2: cięcie, intro, spoczynek; SCRUB: przewinięcie przez przypięty zakres.
     const report: string[] = [`${width}px: hero ${samples.length} frames, ${Object.keys(samples[0].boxes).length} boxes, 0 shifts; hover/focus ×${n} + Replay: 0`];
     for (const id of CHAPTERS_P2) {
-      await record(page, { ms: id === "scrub" ? 4000 : 5500 });
+      await record(page, { ms: id === "scrub" ? 4000 : id === "cost" || id === "yours" ? 2500 : 5500 });
       await cutTo(page, id);
       if (id === "scrub") await wheelThroughScrub(page);
-      await page.waitForTimeout(id === "scrub" ? 800 : 5600);
+      if (id === "cost") await page.locator("[data-cost-mode]").click();
+      if (id === "yours") await page.locator("[data-yours-play]").click();
+      await page.waitForTimeout(id === "scrub" ? 800 : id === "cost" || id === "yours" ? 2600 : 5600);
       const s = await readSamples(page);
       const m = shifts(s);
       expect(m, `shifts in ${id} at ${width}px:\n${m.slice(0, 20).join("\n")}`).toEqual([]);
