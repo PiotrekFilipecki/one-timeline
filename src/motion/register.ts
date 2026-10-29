@@ -35,4 +35,7 @@ export function registerMotion(): void {
 /** Czy krzywe z MOTION.md są zarejestrowane (test i diagnostyka). */
 export const motionReady = (): boolean => registered;
 
+/** Tylko do testów i diagnostyki: podgląd triggerów z Playwrighta. Nie używać w kodzie strony. */
+if (typeof window !== "undefined") (window as unknown as { __otScrollTrigger?: typeof ScrollTrigger }).__otScrollTrigger = ScrollTrigger;
+
 export { gsap, ScrollTrigger, SplitText, CustomEase, useGSAP };

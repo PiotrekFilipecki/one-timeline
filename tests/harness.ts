@@ -1,9 +1,9 @@
 import type { Page } from "@playwright/test";
 
-// Harness przesunięć układu. Nagrywa bounding boxy widocznych słów i linijek co klatkę od pierwszego
-// rAF, bez zaokrąglania. Elementy ukryte (visibility hidden / opacity 0) nie liczą się do przesunięć,
-// tak jak w CLS. Własna translacja elementu (transform) jest odejmowana: transform nie zmienia układu,
-// a ruch linijki czy litery ma być widoczny, nie liczony jako przesunięcie. Gotowy na hover/focus.
+// Harness przesunięć układu. Nagrywa boxy widocznych słów i linijek co klatkę, bez zaokrąglania.
+// Box jest liczony WZGLĘDEM SEKCJI rozdziału (closest [data-chapter]) i bez własnej translacji elementu:
+// transform nie zmienia układu, a przypięta sekcja (SCRUB) porusza się względem dokumentu z definicji.
+// Liczą się tylko elementy w kadrze i widoczne (jak w CLS). Gotowy na hover/focus (snapshotBoxes + diffBoxes).
 
 export const WIDTHS = [360, 390, 768, 1024, 1280, 1440, 1920] as const;
 
@@ -12,22 +12,25 @@ export const TRACKED = "[data-word], [data-line]";
 export type Box = [x: number, y: number, w: number, h: number];
 export type Sample = { t: number; fonts: string; boot: string | null; boxes: Record<string, Box> };
 
-type Win = Window & { __layout?: Sample[]; __layoutKey?: (el: Element) => string; __layoutBox?: (el: Element) => Box };
+type Win = Window & { __layout?: Sample[]; __layoutKey?: (el: Element) => string; __layoutBox?: (el: Element) => Box | null; __layoutStop?: () => void };
 
-/** Klucz elementu: rozdział / atrybut#indeks wśród rodzeństwa o tym samym atrybucie. Box bez własnej translacji. */
 const keyScript = () => {
   const w = window as Win;
   w.__layoutBox = (el: Element) => {
+    const cs = getComputedStyle(el);
+    if (cs.visibility === "hidden" || cs.opacity === "0" || cs.display === "none") return null;
     const r = el.getBoundingClientRect();
-    const t = getComputedStyle(el).transform;
+    if (r.bottom < 0 || r.top > window.innerHeight) return null;
+    const section = el.closest("[data-chapter]")?.getBoundingClientRect() ?? { x: 0, y: 0 };
     let dx = 0;
     let dy = 0;
+    const t = cs.transform;
     if (t && t !== "none") {
       const m = new DOMMatrixReadOnly(t);
       dx = m.e;
       dy = m.f;
     }
-    return [r.x - dx + window.scrollX, r.y - dy + window.scrollY, r.width, r.height] as [number, number, number, number];
+    return [r.x - dx - section.x, r.y - dy - section.y, r.width, r.height] as Box;
   };
   w.__layoutKey = (el: Element) => {
     const chapter = el.closest("[data-chapter]")?.getAttribute("data-chapter") ?? "page";
@@ -39,35 +42,37 @@ const keyScript = () => {
   };
 };
 
+const recorderScript = ({ selector, ms }: { selector: string; ms: number }) => {
+  const w = window as Win;
+  w.__layout = [];
+  const t0 = performance.now();
+  let stopped = false;
+  w.__layoutStop = () => {
+    stopped = true;
+  };
+  const tick = () => {
+    const boxes: Record<string, Box> = {};
+    for (const el of Array.from(document.querySelectorAll(selector))) {
+      const box = w.__layoutBox!(el);
+      if (box) boxes[w.__layoutKey!(el)] = box;
+    }
+    if (Object.keys(boxes).length) {
+      w.__layout!.push({ t: performance.now() - t0, fonts: document.fonts.status, boot: document.documentElement.getAttribute("data-motion-boot"), boxes });
+    }
+    if (!stopped && performance.now() - t0 < ms) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+};
+
 /** Wołaj przed goto. Nagrywa przez `ms` od pierwszej klatki. */
 export async function installRecorder(page: Page, { selector = TRACKED, ms = 2500 } = {}): Promise<void> {
   await page.addInitScript(keyScript);
-  await page.addInitScript(
-    ({ selector, ms }) => {
-      const w = window as Win;
-      w.__layout = [];
-      const t0 = performance.now();
-      const tick = () => {
-        const boxes: Record<string, Box> = {};
-        for (const el of Array.from(document.querySelectorAll(selector))) {
-          const cs = getComputedStyle(el);
-          if (cs.visibility === "hidden" || cs.opacity === "0" || cs.display === "none") continue;
-          boxes[w.__layoutKey!(el)] = w.__layoutBox!(el);
-        }
-        if (Object.keys(boxes).length) {
-          w.__layout!.push({
-            t: performance.now() - t0,
-            fonts: document.fonts.status,
-            boot: document.documentElement.getAttribute("data-motion-boot"),
-            boxes,
-          });
-        }
-        if (performance.now() - t0 < ms) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    },
-    { selector, ms },
-  );
+  await page.addInitScript(recorderScript, { selector, ms });
+}
+
+/** Nowe okno nagrywania na już załadowanej stronie (kolejne rozdziały, SCRUB). */
+export async function record(page: Page, { selector = TRACKED, ms = 3000 } = {}): Promise<void> {
+  await page.evaluate(recorderScript, { selector, ms });
 }
 
 export const readSamples = (page: Page): Promise<Sample[]> => page.evaluate(() => (window as Win).__layout ?? []);
@@ -77,7 +82,10 @@ export const snapshotBoxes = (page: Page, selector: string = TRACKED): Promise<R
   page.evaluate((selector) => {
     const w = window as Win;
     const boxes: Record<string, Box> = {};
-    for (const el of Array.from(document.querySelectorAll(selector))) boxes[w.__layoutKey!(el)] = w.__layoutBox!(el);
+    for (const el of Array.from(document.querySelectorAll(selector))) {
+      const box = w.__layoutBox!(el);
+      if (box) boxes[w.__layoutKey!(el)] = box;
+    }
     return boxes;
   }, selector);
 
@@ -94,10 +102,8 @@ export function diffBoxes(a: Record<string, Box>, b: Record<string, Box>, { exce
     if (except.has(k)) continue;
     const x = a[k];
     const y = b[k];
-    if (!x || !y) {
-      out.push(`${k}: ${x ? "disappeared" : "appeared"}`);
-      continue;
-    }
+    // Element wszedł w kadr albo z niego wyszedł (scroll): to nie przesunięcie.
+    if (!x || !y) continue;
     const d = x.map((v, i) => y[i] - v);
     if (d.some((v) => Math.abs(v) > EPS)) out.push(`${k}: Δ[${d.map((v) => v.toFixed(3)).join(", ")}]`);
   }
@@ -118,3 +124,27 @@ export const noHorizontalScroll = (page: Page): Promise<{ scrollWidth: number; c
     scrollWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
     clientWidth: document.documentElement.clientWidth,
   }));
+
+/** Wyzwala cięcie do rozdziału `id` (próg 80 %) i czeka, aż rozdział stanie w spoczynku. */
+export async function cutTo(page: Page, id: string, { settle = 8000 } = {}): Promise<void> {
+  // Pozycja w dokumencie przez rect: offsetTop przypiętej sekcji (pin-spacer) to 0.
+  const top = await page.locator(`[data-chapter="${id}"]`).evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+  const vh = page.viewportSize()!.height;
+  await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), top - vh * 0.75);
+  await page.waitForFunction((id) => document.documentElement.getAttribute(`data-cut-${id}`) === "after", id, { timeout: 5000 });
+  await page
+    .waitForFunction((id) => {
+      const el = document.querySelector(`[data-chapter="${id}"]`) as HTMLElement | null;
+      return !el || el.dataset.phase === undefined || el.dataset.phase === "rest";
+    }, id, { timeout: settle })
+    .catch(() => {});
+}
+
+/** Przewija przez przypięty zakres SCRUB kółkiem, krokami. */
+export async function wheelThroughScrub(page: Page, steps = 24, delay = 50, fraction = 1): Promise<void> {
+  const vh = page.viewportSize()!.height;
+  for (let i = 0; i < steps; i++) {
+    await page.mouse.wheel(0, Math.round((vh * fraction) / steps));
+    await page.waitForTimeout(delay);
+  }
+}

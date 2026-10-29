@@ -25,7 +25,8 @@ test("all 8 chapter words are visible in their colors without JavaScript", async
   expect(sentence.join(" ").replace(/ \./, ".")).toBe("Sequence, overlap, ease, stagger, scrub, reverse.");
   await expect(page.locator('[data-chapter="hero"] sup').first()).toHaveText("0:00.00");
   await expect(page.locator("[data-replay]")).toBeHidden();
-  await expect(page.locator("[data-playhead]")).toBeHidden();
+  for (const ph of await page.locator("[data-playhead]").all()) await expect(ph).toBeHidden();
+  await expect(page.locator("[data-ease]").first()).toBeHidden();
   await expect(page.locator("[data-opener-bars]")).toBeHidden();
   await expect(page.locator("[data-cut]")).toBeHidden();
 });

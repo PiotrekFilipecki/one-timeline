@@ -22,9 +22,8 @@ export function splitLetters(el: HTMLElement, { charsClass = "ch", pinTo }: { ch
   // Box słowa trzyma swoją niepodzieloną szerokość (dokładny float) przez cały czas splitu: suma liter
   // jako inline-blocków różni się od ciągłego tekstu o kilka 1/64 px (jednostka układu Chromium),
   // a to wystarczy, żeby harness widział ruch albo żeby ciasna linia przełamała się o słowo wcześniej.
-  // Tylko elementy inline-level: blokowe słowa i tak mają szerokość kontenera.
-  const display = getComputedStyle(el).display;
-  const holdBox = display === "inline-block" || display === "inline";
+  // Także dla bloków: w kolumnie flex z align-items: flex-end blok ma szerokość treści (REVERSE), więc i on się ruszał.
+  const holdBox = true;
   const prevWidth = el.style.width;
   if (holdBox) el.style.width = `${el.getBoundingClientRect().width}px`;
   const split = SplitText.create(el, { type: "chars", charsClass, aria: "auto" });

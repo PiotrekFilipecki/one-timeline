@@ -7,6 +7,7 @@
 import { ScrollTrigger, gsap, registerMotion } from "./register";
 import { prefersReducedMotion } from "./reduced-motion";
 import { armRecovery, bootPending, disarm, fontsReady, handOff } from "./boot";
+import { registerChapter } from "./stage";
 
 export type Phase = "start" | "intro" | "rest" | "outro" | "end";
 
@@ -50,6 +51,8 @@ export type ChapterController = {
   seek: (progress: number) => void;
   /** Czas trwania intro w sekundach (0, gdy nie zbudowane). */
   duration: () => number;
+  /** Dojeżdża do labela intro (przyciski EASE). Ostatni label = spoczynek. */
+  goTo: (label: string) => void;
   destroy: () => void;
 };
 
@@ -158,9 +161,34 @@ export function createChapter(opts: ChapterOptions): ChapterController {
 
   const duration = () => intro?.duration() ?? 0;
 
+  const goTo = (label: string) => {
+    if (destroyed) return;
+    if (!intro || intro.progress() === 1) {
+      killOutro();
+      const tl = buildIntro();
+      if (!tl) return;
+      claimStage(controller);
+      setPhase("intro");
+    }
+    const tl = intro!;
+    if (!(label in tl.labels)) return;
+    if (prefersReducedMotion()) {
+      tl.pause(tl.labels[label]);
+      if (tl.labels[label] >= tl.duration()) rest();
+      return;
+    }
+    tl.pause();
+    tl.tweenTo(label, {
+      onComplete: () => {
+        if (intro === tl && tl.labels[label] >= tl.duration()) rest();
+      },
+    });
+  };
+
   const destroy = () => {
     if (destroyed) return;
     destroyed = true;
+    unregister();
     disarm(owner);
     trigger?.kill();
     trigger = null;
@@ -180,8 +208,10 @@ export function createChapter(opts: ChapterOptions): ChapterController {
     rest,
     seek,
     duration,
+    goTo,
     destroy,
   };
+  const unregister = registerChapter(id, controller);
 
   // Deadline bezpieczeństwa: jeśli przygotowanie nie zdąży, rozdział zostaje odkryty w spoczynku.
   if (bootPending()) {

@@ -28,22 +28,22 @@ test("the dot grows into the plum field, scrolling back plays it in reverse", as
   await page.goto("/");
   await page.waitForTimeout(400);
   const html = page.locator("html");
-  await expect(html).toHaveAttribute("data-cut-state", "before");
+  await expect(html).toHaveAttribute("data-cut-position", "before");
   const positionTop = await page.locator('[data-chapter="position"]').evaluate((el) => (el as HTMLElement).offsetTop);
   const vh = page.viewportSize()!.height;
 
   // Próg: górna krawędź POSITION na 80 % kadru.
   await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), positionTop - vh * 0.75);
-  await expect(html).toHaveAttribute("data-cut-state", "cutting");
-  await expect(html).toHaveAttribute("data-cut-state", "after", { timeout: 3000 });
+  await expect(html).toHaveAttribute("data-cut-position", "cutting");
+  await expect(html).toHaveAttribute("data-cut-position", "after", { timeout: 3000 });
   expect(await centerColor(page), "field under the cursor after the cut is plum").toBe(hexToCss(chapter("position").bg));
   expect(await page.evaluate(() => window.scrollY), "document jumped to POSITION").toBe(positionTop);
   await expect(page.locator('[data-chapter="position"]')).toHaveAttribute("data-phase", /intro|rest/);
 
   // Wstecz: przewinięcie w górę za próg 20 % gra cięcie w drugą stronę.
   await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), positionTop - vh * 0.3);
-  await expect(html).toHaveAttribute("data-cut-state", "cutting");
-  await expect(html).toHaveAttribute("data-cut-state", "before", { timeout: 3000 });
+  await expect(html).toHaveAttribute("data-cut-position", "cutting");
+  await expect(html).toHaveAttribute("data-cut-position", "before", { timeout: 3000 });
   expect(await centerColor(page), "field after the reverse cut is pink").toBe(hexToCss(CHAPTERS[0].bg));
   expect(await page.locator("html").getAttribute("data-cut-plays")).toBe("2");
 });
@@ -61,7 +61,7 @@ test("five fast crossings of the threshold do not queue cuts", async ({ page }) 
   }
   await page.waitForTimeout(2500);
   const plays = Number(await page.locator("html").getAttribute("data-cut-plays"));
-  const state = await page.locator("html").getAttribute("data-cut-state");
+  const state = await page.locator("html").getAttribute("data-cut-position");
   console.log(`plays after 5 fast crossings: ${plays}, final state: ${state}`);
   expect(plays, "at most one cut each way, no queue").toBeLessThanOrEqual(2);
   expect(state).not.toBe("cutting");

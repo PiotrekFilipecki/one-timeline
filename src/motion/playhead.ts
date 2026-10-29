@@ -7,17 +7,37 @@
 import type { ChapterController } from "./chapter";
 import { formatTime } from "./format";
 
+/** Co głowica steruje: kontroler rozdziału (seek/rest) albo scroll (SCRUB). */
+export type PlayheadTarget = {
+  seek: (progress: number) => void;
+  /** Po puszczeniu. Kontroler: spoczynek. Scroll: nic. */
+  release: () => void;
+  /** Sekundy dla aria-valuetext; 0 = procenty. */
+  duration: () => number;
+  /** Czy cel jest „w trakcie" (seek trzyma stan); decyduje, czy strzałka liczy od bieżącej wartości. */
+  held: () => boolean;
+  /** Bieżący progress celu 0..1 (np. scroll), gdy znany; inaczej undefined. */
+  progress?: () => number;
+};
+
+export const chapterTarget = (chapter: ChapterController): PlayheadTarget => ({
+  seek: chapter.seek,
+  release: chapter.rest,
+  duration: chapter.duration,
+  held: () => chapter.phase === "intro",
+});
+
 export type PlayheadOptions = {
   /** Element slidera (hairline + pole chwytu). */
   el: HTMLElement;
   /** Obszar, po którym przelicza się x → progress. */
   track: HTMLElement;
-  chapter: ChapterController;
+  target: PlayheadTarget;
   /** Krok strzałki w %. */
   step?: number;
 };
 
-export function attachPlayhead({ el, track, chapter, step = 2 }: PlayheadOptions): () => void {
+export function attachPlayhead({ el, track, target: chapter, step = 2 }: PlayheadOptions): () => void {
   let value = 100;
   let dragging = false;
 
@@ -32,8 +52,8 @@ export function attachPlayhead({ el, track, chapter, step = 2 }: PlayheadOptions
     announce();
   };
   const release = () => {
-    chapter.rest();
-    value = 100;
+    chapter.release();
+    value = chapter.progress ? chapter.progress() * 100 : 100;
     announce();
   };
 
@@ -74,10 +94,10 @@ export function attachPlayhead({ el, track, chapter, step = 2 }: PlayheadOptions
     e.preventDefault();
     if (k === "home") set(0);
     else if (k === "end") set(100);
-    else set((chapter.phase === "intro" ? value : 100) + k);
+    else set((chapter.held() || chapter.progress ? (chapter.progress ? chapter.progress() * 100 : value) : 100) + k);
   };
   const blur = () => {
-    if (chapter.phase === "intro") release();
+    if (chapter.held()) release();
   };
 
   el.addEventListener("pointerdown", down);

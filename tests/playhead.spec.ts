@@ -16,10 +16,10 @@ test("the playhead is a keyboard slider that scrubs the chapter and releases to 
   await page.waitForTimeout(300);
   const position = page.locator('[data-chapter="position"]');
   await position.evaluate((el) => el.scrollIntoView({ block: "start" }));
-  await expect(page.locator("html")).toHaveAttribute("data-cut-state", "after", { timeout: 3000 });
+  await expect(page.locator("html")).toHaveAttribute("data-cut-position", "after", { timeout: 3000 });
   await expect(position).toHaveAttribute("data-phase", "rest", { timeout: 6000 });
 
-  const slider = page.locator("[data-playhead]");
+  const slider = page.locator('[data-chapter="position"] [data-playhead]');
   await expect(slider).toHaveAttribute("role", "slider");
   await slider.focus();
   await expect(slider).toBeFocused();

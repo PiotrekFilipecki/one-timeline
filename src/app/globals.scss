@@ -52,6 +52,26 @@ html[data-motion-boot="done"][data-opener="play"] [data-opener-bars] {
   text-rendering: optimizeSpeed;
 }
 
+/* Maska na czas wejścia zza krawędzi: clip-path nie zmienia układu ani baseline'u. Zapas na akcenty i wydłużenia. */
+[data-split][data-mask] {
+  clip-path: inset(-0.2em -0.08em -0.3em);
+}
+
+/* Koło cięcia: fixed, kolor ustawia JS z palety następnego rozdziału, niewidoczne w spoczynku. */
+[data-cut] {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 20;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
 :focus-visible {
   outline: 3px solid var(--fg);
   outline-offset: 4px;

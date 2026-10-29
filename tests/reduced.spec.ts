@@ -11,7 +11,9 @@ test("every chapter word is visible at rest from the first frame under reduced m
       const words = Array.from(document.querySelectorAll("[data-chapter] :is(h1, h2)[data-word]"));
       const visible = words.filter((el) => {
         const cs = getComputedStyle(el);
-        return cs.visibility !== "hidden" && cs.opacity !== "0" && cs.transform === "none";
+        // EASE ma transform w spoczynku (CSS, układ expo.out); reszta słów stoi bez transformu.
+        const ease = el.closest('[data-chapter="ease"]');
+        return cs.visibility !== "hidden" && cs.opacity !== "0" && (ease || cs.transform === "none");
       }).length;
       w.__first = {
         boot: document.documentElement.getAttribute("data-motion-boot"),
@@ -42,10 +44,10 @@ test("the cut is an instant field change and the playhead still works as a slide
   await position.evaluate((el) => el.scrollIntoView({ block: "start" }));
   await page.waitForTimeout(400);
   await expect(page.locator("[data-cut]"), "no overlay under reduced motion").toBeHidden();
-  await expect(page.locator("html")).toHaveAttribute("data-cut-state", "after");
+  await expect(page.locator("html")).toHaveAttribute("data-cut-position", "after");
   await expect(position).toHaveAttribute("data-phase", "rest");
 
-  const slider = page.locator("[data-playhead]");
+  const slider = page.locator('[data-chapter="position"] [data-playhead]');
   await slider.focus();
   await page.keyboard.press("Home");
   await page.keyboard.press("ArrowRight");
@@ -56,4 +58,23 @@ test("the cut is an instant field change and the playhead still works as a slide
   await slider.blur();
   await expect(position).toHaveAttribute("data-phase", "rest");
   await expect(slider).toHaveAttribute("aria-valuenow", "100");
+});
+
+test("P2 chapters rest without motion: EASE expo.out layout, STAGGER full word, SCRUB middle axes, REVERSE both rows", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForTimeout(300);
+  for (const id of ["ease", "stagger", "scrub", "reverse"]) {
+    await page.locator(`[data-chapter="${id}"]`).evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await page.waitForTimeout(300);
+  }
+  const copies = await page.locator("[data-onion] > *").count();
+  expect(copies).toBe(12);
+  await expect(page.locator('[data-chapter="ease"]')).toHaveAttribute("data-phase", "rest");
+  const visibleCells = await page.locator("[data-cell]").evaluateAll((els) => els.filter((e) => getComputedStyle(e).display !== "none" && getComputedStyle(e).transform === "none").length);
+  expect(visibleCells).toBeGreaterThanOrEqual(56);
+  expect(await page.locator('[data-chapter="scrub"]').getAttribute("data-scrub-ready"), "no pin under reduced motion").toBeNull();
+  const scrub = await page.locator('[data-chapter="scrub"] [data-word="scrub"]').evaluate((el) => ({ stretch: getComputedStyle(el).fontStretch, weight: getComputedStyle(el).fontWeight, chars: el.querySelectorAll(".ch").length }));
+  expect(scrub).toEqual({ stretch: "100%", weight: "500", chars: 0 });
+  await expect(page.locator('[data-chapter="reverse"]')).toHaveAttribute("data-phase", "rest");
+  expect(await page.locator('[data-chapter="reverse"] .ch').count()).toBe(0);
 });

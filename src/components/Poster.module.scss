@@ -171,21 +171,6 @@
   will-change: transform;
 }
 
-/* Koło cięcia: fixed, w kolorze następnego pola, niewidoczne w spoczynku. */
-.field[data-chapter="hero"] :global([data-cut]) {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 20;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  will-change: transform;
-}
-
 /* Głowica: hairline przez całą scenę, 24 px pola chwytu (WCAG 2.5.8). Spoczynek: prawa krawędź sceny
    (koniec timeline'u), widoczna i fokusowalna; intro przesuwa ją transformem od lewej. */
 .field :global([data-playhead]) {
@@ -239,23 +224,122 @@
   text-align: right;
 }
 
-/* EASE: słowo w prawym dolnym rogu sceny, cisza nad nim. */
+/* EASE: onion skin. Kopie w jednym wierszu; pozycja = --p * (szerokość kontenera − szerokość kopii),
+   bez JS (container query units). Aktor (h2) solidny, duchy konturem w tej samej farbie. */
 .field[data-chapter="ease"] .stage {
   justify-content: flex-end;
-  align-items: flex-end;
 }
 
-/* STAGGER: oversized, cięte prawą krawędzią kadru. */
-.field[data-chapter="stagger"] .word {
-  /* Pomiar P0 (glify, Range): STAGGER = 4.75em przy wght 800 / wdth 100 → 24vw = 114 % kadru, R cięte w połowie. */
-  font-size: 24vw;
-  margin-right: calc(-1 * var(--gutter));
+.onion {
+  position: relative;
+  container-type: inline-size;
+  width: 100%;
 }
 
-/* SCRUB: środek kadru. Stan spoczynku = środek osi (P2 rozciąga 50→150). */
+.onion .word {
+  /* Jak [data-split]: bez kerningu, żeby duchy i aktor miały identyczną szerokość. */
+  font-kerning: none;
+  text-rendering: optimizeSpeed;
+  font-size: clamp(64px, 14vw, 260px);
+  transform: translateX(calc(var(--p, 1) * (100cqw - 100%)));
+  will-change: transform;
+}
+
+.ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--fg);
+}
+
+.onion :global(h2) {
+  position: relative;
+  display: inline-block;
+}
+
+.eases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  justify-self: end;
+
+  @media (max-width: 767px) {
+    justify-self: start;
+  }
+}
+
+.easeButton {
+  all: unset;
+  display: inline-block;
+  padding: 0.35em 0.7em;
+  border: 2px solid var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--step-1);
+  font-weight: 500;
+  color: var(--fg);
+  cursor: pointer;
+
+  &[aria-pressed="true"] {
+    background: var(--fg);
+    color: var(--bg);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--fg);
+    outline-offset: 4px;
+  }
+}
+
+/* STAGGER: siatka liter 16×7 (telefon 8×7). Komórki rosną od podstawy (transform-origin na dole, w JS). */
+.gridWord {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-rest);
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  gap: 0;
+  width: 100%;
+}
+
+.cell {
+  display: block;
+  font-size: clamp(22px, 5.2vw, 96px);
+  line-height: 1;
+  text-align: center;
+  will-change: transform;
+}
+
+@media (max-width: 767px) {
+  .grid {
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .cell {
+    font-size: 11vw;
+  }
+
+  .cell:nth-child(n + 57) {
+    display: none;
+  }
+}
+
+/* SCRUB: środek kadru. Spoczynek = środek osi (wdth 100, wght 500); scroll rozciąga 50 → 150 / 100 → 900.
+   Rozmiar tak, by najszerszy stan (≈ 5.1em) mieścił się w kadrze. */
 .field[data-chapter="scrub"] .word {
-  font-size: 22vw;
-  align-self: center;
+  /* Pomiar P2: przy 18vw stan wdth 150 / wght 900 wystawał za kadr („SCRU|B"); 16.5vw mieści się z zapasem.
+     Box słowa rozciągnięty na całą scenę (nie align-self: center): litery przypięte do stanu 150 muszą mieć
+     miejsce w boxie w każdym stanie, a box trzyma stałą szerokość (0 przesunięć). Centrowanie przez text-align. */
+  font-size: 16.5vw;
+  font-weight: 500;
+  text-align: center;
 }
 
 .field[data-chapter="scrub"] .foot {

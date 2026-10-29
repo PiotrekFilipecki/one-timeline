@@ -6,6 +6,7 @@ import { Scrub } from "@/chapters/Scrub";
 import { Reverse } from "@/chapters/Reverse";
 import { Cost } from "@/chapters/Cost";
 import { Yours } from "@/chapters/Yours";
+import { Cuts } from "@/components/Cuts";
 
 // Jedna strona, osiem plakatów w łańcuchu kolorów (MOTION.md). Kolejność = PLAN §4.
 export default function Page() {
@@ -19,6 +20,8 @@ export default function Page() {
       <Reverse />
       <Cost />
       <Yours />
+      {/* Cięcia przez literę między rozdziałami: jedno koło, konfiguracja w src/motion/cuts.ts. */}
+      <Cuts />
     </main>
   );
 }

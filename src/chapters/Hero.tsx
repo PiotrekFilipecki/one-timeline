@@ -1,5 +1,4 @@
 import { copy } from "@/lib/copy";
-import { chapter } from "@/lib/palette";
 import { Field, Foot, Line, Stage, Word } from "@/components/Poster";
 import { HeroMotion, OpenerBars } from "@/components/HeroMotion";
 import s from "@/components/Poster.module.scss";
@@ -13,7 +12,6 @@ export function Hero() {
   const c = copy("hero");
   const words = c.word.replace(/\.$/, "").split(" ");
   const marks = c.marks ?? [];
-  const next = chapter("position");
   return (
     <Field id="hero" title={c.title}>
       <OpenerBars />
@@ -46,8 +44,6 @@ export function Hero() {
           {c.replay ?? "Replay"}
         </button>
       </Foot>
-      {/* Koło cięcia: kolor następnego pola, fixed, niewidoczne w spoczynku. */}
-      <div data-cut aria-hidden="true" style={{ background: next.bg }} />
       <HeroMotion />
     </Field>
   );

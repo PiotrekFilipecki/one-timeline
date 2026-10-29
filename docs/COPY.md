@@ -24,25 +24,29 @@ code: tl.to(".ovl", { y: -80 }, "<0.06")
 ## ease
 title: Ease
 word: EASE
+playhead: Playhead
 line: Twelve copies of one word. Their spacing is the curve.
 
 ## stagger
 title: Stagger
 word: STAGGER
+playhead: Playhead
 line: One tween, a grid of letters. The offset decides who moves first.
 
 ## scrub
 title: Scrub
 word: SCRUB
+playhead: Playhead
 line: The only chapter on the scroll. Your finger is the playhead.
 
 ## reverse
 title: Reverse
 word: REVERSE
 word2: REVERSE
+playhead: Playhead
 line: Played backwards, an ease-out crawls. easeReverse keeps the exit honest.
 code: tl.reverse()
-code: gsap.timeline({ easeReverse: true })
+code: tl.to(b, { yPercent: 0, ease: "expo.out", easeReverse: true })
 
 ## cost
 title: Cost

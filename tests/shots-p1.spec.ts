@@ -33,6 +33,7 @@ for (const vp of VIEWPORTS) {
     await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), positionTop - vp.height * 0.75);
     await page.waitForTimeout(330);
     await page.screenshot({ path: join(dir, `cut-50-${vp.width}.png`) });
+    await page.waitForFunction(() => document.documentElement.getAttribute("data-cut-position") === "after", null, { timeout: 5000 });
     await page.waitForTimeout(900);
     await page.screenshot({ path: join(dir, `position-jumping-${vp.width}.png`) });
     await page.waitForTimeout(3000);

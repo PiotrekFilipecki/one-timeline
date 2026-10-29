@@ -1,17 +1,37 @@
 import { copy } from "@/lib/copy";
-import { Field, Foot, Line, Stage, Word } from "@/components/Poster";
+import { Field, Foot, Line, Stage } from "@/components/Poster";
+import { Playhead } from "@/components/Playhead";
+import { StaggerMotion } from "@/components/StaggerMotion";
+import s from "@/components/Poster.module.scss";
 
-/** STAGGER: oversized, cięte prawą krawędzią. P2 buduje je z siatki liter. */
+export const STAGGER_COLS = 16;
+export const STAGGER_ROWS = 7;
+
+/**
+ * STAGGER: słowo z siatki liter 16×7 (telefon 8×7 przez CSS). Każda komórka to jedna litera słowa,
+ * powtarzanego; nagłówek czyta się jako jedno słowo (aria-label), komórki są dekoracją.
+ */
 export function Stagger() {
   const c = copy("stagger");
+  const cells = Array.from({ length: STAGGER_COLS * STAGGER_ROWS }, (_, i) => c.word[i % c.word.length]);
   return (
     <Field id="stagger" title={c.title}>
       <Stage>
-        <Word name="stagger">{c.word}</Word>
+        <h2 className={s.gridWord} data-word="stagger" aria-label={c.word}>
+          <span className={s.grid} data-grid aria-hidden="true">
+            {cells.map((letter, i) => (
+              <span key={i} className={s.cell} data-cell>
+                {letter}
+              </span>
+            ))}
+          </span>
+        </h2>
+        <Playhead label={c.playhead ?? "Playhead"} />
       </Stage>
       <Foot>
         <Line>{c.line}</Line>
       </Foot>
+      <StaggerMotion />
     </Field>
   );
 }

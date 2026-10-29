@@ -1,12 +1,15 @@
 import { expect, test } from "@playwright/test";
-import { WIDTHS, diffBoxes, installRecorder, noHorizontalScroll, readSamples, shifts, snapshotBoxes } from "./harness";
+import { WIDTHS, cutTo, diffBoxes, installRecorder, noHorizontalScroll, readSamples, record, shifts, snapshotBoxes, wheelThroughScrub } from "./harness";
 
-// Harness przesunięć układu na 7 szerokościach: od pierwszej widocznej klatki, przez całe intro hero
-// (6 s), po stanie spoczynku, oraz przy hover i focus każdego słowa zdania i przycisku Replay:
-// boxy słów i linijek się nie zmieniają (bez zaokrąglania), nie ma poziomego scrolla.
+// Harness przesunięć układu na 7 szerokościach: boot i intro hero (6.5 s), spoczynek, hover i focus słów
+// i Replay, potem każdy rozdział P2 w trakcie intro po cięciu i SCRUB w trakcie przewijania przez przypięty
+// zakres. Boxy liczone względem sekcji, bez własnej translacji; 0 przesunięć, bez zaokrąglania.
+
+const CHAPTERS_P2 = ["position", "ease", "stagger", "scrub", "reverse"] as const;
 
 for (const width of WIDTHS) {
-  test(`${width}px: 0 layout shifts through the hero intro, at rest, on hover and focus`, async ({ browser }) => {
+  test(`${width}px: 0 layout shifts through hero, hover/focus, every chapter intro and SCRUB`, async ({ browser }) => {
+    test.setTimeout(120_000);
     const context = await browser.newContext({ viewport: { width, height: width < 768 ? 844 : 900 } });
     const page = await context.newPage();
     const errors: string[] = [];
@@ -23,9 +26,9 @@ for (const width of WIDTHS) {
     expect(samples[0].fonts, "first visible frame already has fonts loaded").toBe("loaded");
     expect(samples[samples.length - 1].boot, "boot gate released").not.toBe("pending");
     const moved = shifts(samples);
-    expect(moved, `shifts during intro at ${width}px:\n${moved.slice(0, 20).join("\n")}`).toEqual([]);
+    expect(moved, `shifts during hero intro at ${width}px:\n${moved.slice(0, 20).join("\n")}`).toEqual([]);
 
-    // Hover i focus każdego słowa zdania oraz Replay: nic poza nimi się nie rusza, a one trzymają box.
+    // Hover i focus każdego słowa zdania oraz Replay.
     const rest = await snapshotBoxes(page);
     const words = page.locator('[data-chapter="hero"] [data-word-key]');
     const n = await words.count();
@@ -34,22 +37,33 @@ for (const width of WIDTHS) {
       const w = words.nth(i);
       await w.hover();
       await page.waitForTimeout(350);
-      const hot = await snapshotBoxes(page);
-      expect(diffBoxes(rest, hot), `hover word ${i} at ${width}px`).toEqual([]);
+      expect(diffBoxes(rest, await snapshotBoxes(page)), `hover word ${i} at ${width}px`).toEqual([]);
       await page.mouse.move(0, 0);
       await page.waitForTimeout(450);
       await w.focus();
       await page.waitForTimeout(350);
-      const focused = await snapshotBoxes(page);
-      expect(diffBoxes(rest, focused), `focus word ${i} at ${width}px`).toEqual([]);
+      expect(diffBoxes(rest, await snapshotBoxes(page)), `focus word ${i} at ${width}px`).toEqual([]);
       await w.blur();
       await page.waitForTimeout(450);
     }
     await page.locator("[data-replay]").focus();
     await page.waitForTimeout(200);
     expect(diffBoxes(rest, await snapshotBoxes(page)), `focus Replay at ${width}px`).toEqual([]);
-    expect(diffBoxes(rest, await snapshotBoxes(page)), `after all hovers at ${width}px`).toEqual([]);
-    console.log(`${width}px: ${samples.length} frames, ${Object.keys(samples[0].boxes).length} boxes, 0 shifts; hover/focus ×${n} + Replay: 0 shifts`);
+
+    // Rozdziały P2: cięcie, intro, spoczynek; SCRUB: przewinięcie przez przypięty zakres.
+    const report: string[] = [`${width}px: hero ${samples.length} frames, ${Object.keys(samples[0].boxes).length} boxes, 0 shifts; hover/focus ×${n} + Replay: 0`];
+    for (const id of CHAPTERS_P2) {
+      await record(page, { ms: id === "scrub" ? 4000 : 5500 });
+      await cutTo(page, id);
+      if (id === "scrub") await wheelThroughScrub(page);
+      await page.waitForTimeout(id === "scrub" ? 800 : 5600);
+      const s = await readSamples(page);
+      const m = shifts(s);
+      expect(m, `shifts in ${id} at ${width}px:\n${m.slice(0, 20).join("\n")}`).toEqual([]);
+      report.push(`${id}: ${s.length} frames, 0 shifts`);
+    }
+    console.log(report.join(" | "));
+    expect(errors, "no runtime errors through the chapters").toEqual([]);
 
     const scroll = await noHorizontalScroll(page);
     expect(scroll.scrollWidth, `horizontal scroll at ${width}px`).toBeLessThanOrEqual(scroll.clientWidth);

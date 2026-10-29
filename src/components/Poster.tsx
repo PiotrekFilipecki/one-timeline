@@ -32,9 +32,9 @@ export function Stage({ children }: { children: ReactNode }) {
 }
 
 /** Słowo rozdziału w stanie spoczynku. h2 dla pierwszego słowa, p dla drugiego w dyptyku. */
-export function Word({ as: Tag = "h2", name, children }: { as?: "h1" | "h2" | "p"; name: string; children: ReactNode }) {
+export function Word({ as: Tag = "h2", name, style, children }: { as?: "h1" | "h2" | "p"; name: string; style?: CSSProperties; children: ReactNode }) {
   return (
-    <Tag className={s.word} data-word={name} data-split>
+    <Tag className={s.word} data-word={name} data-split style={style}>
       {children}
     </Tag>
   );
