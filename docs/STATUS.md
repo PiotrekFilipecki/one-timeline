@@ -1,6 +1,12 @@
 # STATUS · One Timeline v7
 
-**Faza:** v7.1 na produkcji + poprawka chaosu na scrollu (29.10.2026, noc; `docs/devlog/P5d-scroll-chaos.md`): progi cięć z tego, co widać, scroll wstrzymany na czas cięcia (bezwładność zjedzona), histereza w tył 25 %, `LayoutProps` zastąpione jawnym typem. Piotrek testuje; czekam na konkret (miejsce, urządzenie), jeśli dalej skacze.
+**Faza:** v7.1 na produkcji, PRZERWANE 29.10.2026 w nocy. Piotrek po wdrożeniu: „źle działa wszystko, chaos, animacje skaczą, wywołują się po kilka razy"; po poprawce scrolla (`7c253d0`, devlog `P5d-scroll-chaos.md`: progi cięć z tego, co widać, smoother w pauzie na czas cięcia, histereza w tył 25 %) nadal: „jeszcze nie jest ok", bez szczegółów. Kończymy na teraz.
+
+**Od czego zacząć następnym razem**
+1. Zapytać o konkret: gdzie skacze (hero? po cięciu? SCRUB? telefon?) i czym przewija (trackpad / mysz z kółkiem / telefon). Mysz z kółkiem skokowym: cięcie po dwóch kliknięciach (próg 80 %), kandydat: próg w dół 60 % albo cięcie dopiero po zatrzymaniu scrolla.
+2. Obejrzeć samemu w prawdziwej przeglądarce (Claude in Chrome), nie tylko w Playwrighcie; symulacja flicku jest w `docs/devlog/P5d-scroll-chaos.md` i w pamięci sesji.
+3. Rozważyć prostszy model: zamiast cięcia na progu w trakcie scrolla, snap rozdziałów (ScrollTrigger snap albo ScrollSmoother) i cięcie jako przejście między snapami; albo wyłączyć smoother i wrócić do natywnego scrolla z v7 (jeden przełącznik: `createSmoothScroll` w `PageScroll.tsx`), żeby odizolować, co dokładnie psuje odbiór.
+4. Produkcja `one-timeline.vercel.app` ma `7c253d0` (sprawdzić, czy build Ready). Testy: 57 passed, 3 workery; `cutTo` chodzi po rozdziałach po kolei.
 
 ## Gotowość do wdrożenia
 - Build statyczny (`next build`, trasa `/` prerenderowana), zero env, zero backendu. Vercel: `vercel --prod`. VPS: `npm run build && npm run start -p 3000` za reverse proxy. Decyzja: Piotrek.
