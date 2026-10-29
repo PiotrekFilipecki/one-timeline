@@ -4,7 +4,7 @@
 // Wstecz: koło pojawia się pełne, dokument skacze z powrotem, koło kurczy się na expo.out (odwrócone expo.in,
 // jak easeReverse). W trakcie cięcia maks. 3 kolory: dwa pola i koło. Szybkie przejścia przez próg nie
 // kolejkują: w chwili zakrycia liczy się realna pozycja dokumentu.
-// Progi liczone z pozycji w dokumencie względem celu scrolla przez koordynatora w cuts.ts (jeden nasłuch na stronę):
+// Progi liczone z tego, co widać (rect wygładzonej treści), przez koordynatora w cuts.ts (jeden nasłuch na stronę):
 // ScrollTrigger nie przeliczał triggerów utworzonych przed pin-spacerem SCRUB (progi poniżej pinu o 100 vh
 // za wcześnie), a przy skoku przez kilka progów naraz gra tylko najdalsze cięcie, wcześniejsze przechodzą cicho.
 "use client";
@@ -13,7 +13,9 @@ import { gsap, registerMotion } from "./register";
 import { prefersReducedMotion } from "./reduced-motion";
 import { viewTop } from "./scroll";
 
-export const CUT = { grow: 0.6, ease: "expo.in", forwardAt: 0.8, backAt: 0.2 } as const;
+/** Progi: w dół, gdy górna krawędź następnego rozdziału jest ≤ 80 % kadru; w tył, gdy wraca poniżej 25 % (histereza
+ *  225 px na 900 px kadru: korekta kciukiem po cięciu nie odgrywa go od razu wstecz). Po cięciu scroll zwolniony po `release`. */
+export const CUT = { grow: 0.6, ease: "expo.in", forwardAt: 0.8, backAt: 0.25, release: 0.35 } as const;
 
 export type CutOptions = {
   /** Id cięcia (= id następnego rozdziału); stan trafia na <html data-cut-{id}>. */
@@ -35,6 +37,8 @@ export type CutOptions = {
   onDone?: (direction: "forward" | "back") => void;
   /** Po zakończeniu cięcia koordynator sprawdza progi jeszcze raz. */
   onSettle?: () => void;
+  /** Wstrzymanie i zwolnienie scrolla na czas cięcia (smoother w pauzie zjada bezwładność). */
+  hold?: (on: boolean) => void;
   /** Własny warunek progu w dół (pętla: koniec dokumentu). Domyślnie górna krawędź `next` ≤ 80 % kadru. */
   forwardWhen?: () => boolean;
   /** Własny warunek progu w tył. Domyślnie górna krawędź `next` < 20 % kadru. */
@@ -61,7 +65,20 @@ export type Cut = {
 
 export function createCut(opts: CutOptions): Cut {
   registerMotion();
-  const { id, color, rect: letterRect, overlay, next, onCovered, onPassed, onUncover, onDone, onSettle, forwardWhen, backWhen, resetAfterForward = false } = opts;
+  const { id, color, rect: letterRect, overlay, next, onCovered, onPassed, onUncover, onDone, onSettle, hold, forwardWhen, backWhen, resetAfterForward = false } = opts;
+  let releaseCall: gsap.core.Tween | null = null;
+  const holdOn = () => {
+    releaseCall?.kill();
+    releaseCall = null;
+    hold?.(true);
+  };
+  const holdOff = () => {
+    releaseCall?.kill();
+    releaseCall = gsap.delayedCall(CUT.release, () => {
+      releaseCall = null;
+      hold?.(false);
+    });
+  };
   let state: "before" | "cutting" | "after" = "before";
   let shown: "before" | "after" = "before";
   let tl: gsap.core.Timeline | null = null;
@@ -78,7 +95,7 @@ export function createCut(opts: CutOptions): Cut {
   };
 
   const vh = () => window.innerHeight;
-  // Progi względem celu scrolla (viewTop), nie wygładzonej treści: patrz scroll.ts.
+  // Progi względem tego, co widać (viewTop = rect wygładzonej treści): patrz scroll.ts.
   const top = () => viewTop(next);
   const pastForward = () => (forwardWhen ? forwardWhen() : top() <= vh() * CUT.forwardAt);
   const pastBack = () => (backWhen ? backWhen() : top() < vh() * CUT.backAt);
@@ -103,6 +120,7 @@ export function createCut(opts: CutOptions): Cut {
     }
     report();
     onDone?.(direction);
+    holdOff();
     // Po cięciu liczy się realna pozycja dokumentu, nie kolejka zdarzeń z trakcie.
     onSettle?.();
   };
@@ -134,6 +152,7 @@ export function createCut(opts: CutOptions): Cut {
     state = "cutting";
     countPlay();
     report();
+    holdOn();
     const g = geometry();
     tl?.kill();
     tl = gsap.timeline({ defaults: { overwrite: "auto" } });
@@ -168,6 +187,7 @@ export function createCut(opts: CutOptions): Cut {
     state = "cutting";
     countPlay();
     report();
+    holdOn();
     tl?.kill();
     // Najpierw pełne koło i skok dokumentu, potem pomiar litery w jej prawdziwym miejscu.
     gsap.set(overlay, { backgroundColor: color, autoAlpha: 1, scale: 1, left: 0, top: 0, width: window.innerWidth, height: vh(), transformOrigin: "50% 50%" });
@@ -202,6 +222,8 @@ export function createCut(opts: CutOptions): Cut {
     unpass,
     destroy: () => {
       destroyed = true;
+      releaseCall?.kill();
+      hold?.(false);
       tl?.kill();
       gsap.set(overlay, { clearProps: "all" });
       html.removeAttribute(`data-cut-${id}`);

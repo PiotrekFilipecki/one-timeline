@@ -66,6 +66,23 @@ export const currentScroll = (): number => (smoother ? smoother.scrollTop() : wi
  *  (ScrollSmoother.offset() tworzy i zabija ScrollTrigger przy każdym wywołaniu: za drogie na nasłuch scrolla.) */
 export const scrollPositionOf = (el: HTMLElement): number => el.getBoundingClientRect().top + currentScroll();
 
-/** Górna krawędź elementu względem kadru TAM, DOKĄD jedzie scroll (pasek), nie tam, gdzie treść jest teraz.
- *  Progi cięć liczą się od celu: przy skoku przez kilka rozdziałów gra najdalsze cięcie, jak bez smoothera. */
-export const viewTop = (el: HTMLElement): number => scrollPositionOf(el) - window.scrollY;
+/** Górna krawędź elementu względem kadru TAM, GDZIE TREŚĆ JEST TERAZ (to, co widz widzi), nie gdzie jedzie pasek.
+ *  Wersja „od celu" (pasek) strzelała cięciem przy pierwszym ruchu flicku trackpada, zanim treść dojechała:
+ *  cel ucieka o sekundę przed obraz, a bezwładność po skoku od razu dociągała następny próg (chaos z 29.10). */
+export const viewTop = (el: HTMLElement): number => el.getBoundingClientRect().top;
+
+/** Wstrzymanie scrolla na czas cięcia: smoother w pauzie zjada bezwładność trackpada, więc jeden flick = jedno
+ *  cięcie, a następne wymaga nowego gestu. Skoki przez jumpTo() działają także w pauzie. Bez smoothera: nic. */
+export function holdScroll(on: boolean): void {
+  if (!smoother) return;
+  const html = document.documentElement;
+  if (on) {
+    smoother.paused(true);
+    html.dataset.scrollHold = "";
+  } else {
+    // Zwolnienie: pasek równo z treścią, żeby zjedzona bezwładność nie wróciła jako skok.
+    smoother.scrollTo(smoother.scrollTop(), false);
+    smoother.paused(false);
+    delete html.dataset.scrollHold;
+  }
+}

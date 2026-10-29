@@ -161,8 +161,28 @@ export const settled = (page: Page, timeout = 4000): Promise<unknown> =>
     }, null, { timeout })
     .catch(() => {});
 
-/** Wyzwala cięcie do rozdziału `id` (próg 80 %) i czeka, aż rozdział stanie w spoczynku. */
+/** Czeka, aż scroll nie jest wstrzymany przez cięcie (smoother w pauzie cofa natywne przewinięcia). */
+export const unheld = (page: Page, timeout = 4000): Promise<unknown> =>
+  page.waitForFunction(() => !document.documentElement.hasAttribute("data-scroll-hold"), null, { timeout }).catch(() => {});
+
+/** Kolejność cięć (id = rozdział docelowy). Progi liczą się z tego, co widać, więc daleki skok gra najbliższe
+ *  cięcie i kasuje cel: do dalszego rozdziału idzie się po kolei, jak użytkownik. */
+const CUT_ORDER = ["position", "ease", "stagger", "scrub", "reverse", "cost", "yours"] as const;
+
+/** Wyzwala cięcia aż do rozdziału `id` (po kolei od ostatniego zagranego) i czeka, aż stanie w spoczynku. */
 export async function cutTo(page: Page, id: string, { settle = 8000 } = {}): Promise<void> {
+  const target = CUT_ORDER.indexOf(id as (typeof CUT_ORDER)[number]);
+  if (target < 0) throw new Error(`cutTo: unknown chapter ${id}`);
+  const states = await page.evaluate((ids) => ids.map((i) => document.documentElement.getAttribute(`data-cut-${i}`)), [...CUT_ORDER]);
+  let from = 0;
+  while (from < CUT_ORDER.length && states[from] === "after") from++;
+  // Rozdziały po drodze nie czekają na spoczynek: następne cięcie przerywa ich intro, jak przy flicku użytkownika.
+  for (let i = from; i < target; i++) await cutStep(page, CUT_ORDER[i], 10);
+  await cutStep(page, id, settle);
+}
+
+async function cutStep(page: Page, id: string, settle: number): Promise<void> {
+  await unheld(page);
   // Pozycja w dokumencie przez rect: offsetTop przypiętej sekcji (pin-spacer) to 0.
   const top = await page.locator(`[data-chapter="${id}"]`).evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
   const vh = page.viewportSize()!.height;
@@ -188,6 +208,7 @@ export async function cutTo(page: Page, id: string, { settle = 8000 } = {}): Pro
     }, id, { timeout: settle })
     .catch(() => {});
   await settled(page);
+  await unheld(page);
 }
 
 /** Przewija przez przypięty zakres SCRUB kółkiem, krokami. */

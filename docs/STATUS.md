@@ -1,6 +1,6 @@
 # STATUS · One Timeline v7
 
-**Faza:** v7.1 na produkcji (29.10.2026, wieczór): `main` = `6c4eff8` (fast-forward przez PR #1 → #3 na polecenie Piotrka; #1 merged, #2 i #3 zamknięte, bo ich commity weszły razem), https://one-timeline.vercel.app wdrożone i sprawdzone (smoother, 8 blobów, ziarno, linijka hero, OG, JSON-LD, 4 linki autora, zero błędów). Piotrek testuje. Devlogi: `docs/devlog/P5a…P5c`.
+**Faza:** v7.1 na produkcji + poprawka chaosu na scrollu (29.10.2026, noc; `docs/devlog/P5d-scroll-chaos.md`): progi cięć z tego, co widać, scroll wstrzymany na czas cięcia (bezwładność zjedzona), histereza w tył 25 %, `LayoutProps` zastąpione jawnym typem. Piotrek testuje; czekam na konkret (miejsce, urządzenie), jeśli dalej skacze.
 
 ## Gotowość do wdrożenia
 - Build statyczny (`next build`, trasa `/` prerenderowana), zero env, zero backendu. Vercel: `vercel --prod`. VPS: `npm run build && npm run start -p 3000` za reverse proxy. Decyzja: Piotrek.

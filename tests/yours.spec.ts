@@ -13,6 +13,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("fields clamp, the code line follows, Play animates the letters and Reverse brings them back", async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto("/");
   await page.waitForTimeout(300);
   await cutTo(page, "yours");

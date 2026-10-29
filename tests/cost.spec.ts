@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 // Pomiar P3 na M-serii Mac: przy 1× obie ścieżki mieszczą się w klatce (4 litery, flush layoutu ≈ 0.03 ms);
 // przy 12× CPU (rząd taniego telefonu) left/top z odczytem pęka, transform nie. Test wymusza 12×.
 test("forced left/top mode turns the field red within 2 s at 12× CPU slowdown; transform turns it back to mint", async ({ page, context }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   await page.goto("/");
   await page.waitForTimeout(300);
   await cutTo(page, "cost");

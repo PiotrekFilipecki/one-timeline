@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { CHAPTERS, chapter } from "../src/lib/palette";
 import { hexToCss } from "../src/lib/contrast";
-import { cutTo } from "./harness";
+import { cutTo, waitForRest } from "./harness";
 
 // Łańcuch kolorów przez cięcia: po każdym cięciu pole pod środkiem kadru = typografia poprzedniego rozdziału,
 // a następny rozdział gra i staje. Hero → POSITION → EASE → STAGGER → SCRUB → REVERSE → pole COST.
@@ -28,7 +28,7 @@ test.beforeEach(async ({ page }) => {
 test("every cut lands on the previous chapter's typography color and the next chapter plays once", async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto("/");
-  await page.waitForTimeout(400);
+  await waitForRest(page, "hero");
   const ids = CHAPTERS.map((c) => c.id);
   for (let i = 1; i < ids.length; i++) {
     const from = chapter(ids[i - 1]);

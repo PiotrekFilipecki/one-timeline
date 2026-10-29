@@ -7,7 +7,7 @@
 import { chapter, type ChapterId } from "@/lib/palette";
 import { createCut, type Cut } from "./cut";
 import { getChapter } from "./stage";
-import { jumpTo, onScrollUpdate, scrollPositionOf } from "./scroll";
+import { currentScroll, holdScroll, jumpTo, onScrollUpdate, scrollPositionOf } from "./scroll";
 
 export type CutSpec = {
   from: ChapterId;
@@ -30,8 +30,8 @@ export const CUTS: readonly CutSpec[] = [
 /** Pętla: ostatnie cięcie (S z YOURS) zalewa kadr różem i przewija na górę do hero w spoczynku. */
 export const LOOP: CutSpec = { from: "yours", to: "hero", word: '[data-word="yours"]', index: -1 };
 
-/** Koniec dokumentu (z marginesem 2 px na zaokrąglenia). Pasek, nie wygładzona treść: cel scrolla. */
-export const atDocumentEnd = (): boolean => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+/** Koniec dokumentu (z marginesem 2 px na zaokrąglenia), tam gdzie treść jest teraz (wygładzona). */
+export const atDocumentEnd = (): boolean => window.innerHeight + currentScroll() >= document.documentElement.scrollHeight - 2;
 
 /** Bounding box i-tej widocznej litery w tekście elementu (bez białych znaków). */
 export function letterRect(el: HTMLElement, index: number): DOMRect {
@@ -141,6 +141,7 @@ function createChapterCut(spec: CutSpec, overlay: HTMLElement, onSettle: () => v
       if (c && c.phase === "intro") c.rest();
     },
     onSettle,
+    hold: holdScroll,
   });
 }
 
@@ -171,6 +172,7 @@ function createLoop(overlay: HTMLElement, onSettle: () => void, onLooped: () => 
     },
     onUncover: () => {},
     onSettle,
+    hold: holdScroll,
   });
   const topLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>("[data-top]"));
   const onTop = (e: Event) => {

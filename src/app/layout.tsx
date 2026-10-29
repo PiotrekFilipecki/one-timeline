@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Anybody } from "next/font/google";
 import { BOOT_SCRIPT } from "@/motion/boot";
 import { MotionBoot } from "@/components/MotionBoot";
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     // suppressHydrationWarning: skrypt bramki dopisuje data-motion-boot zanim React zhydratuje <html>.
     <html lang="en" className={anybody.variable} suppressHydrationWarning>

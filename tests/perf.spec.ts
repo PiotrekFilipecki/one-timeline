@@ -58,9 +58,7 @@ for (const vp of [
     await page.waitForTimeout(500);
 
     // STAGGER: pomiar w trakcie intro (3 przejścia, ~4.6 s).
-    const top = await page.locator('[data-chapter="stagger"]').evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
-    await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), top - vp.height * 0.75);
-    await page.waitForFunction(() => document.documentElement.getAttribute("data-cut-stagger") === "after", null, { timeout: 8000 });
+    await cutTo(page, "stagger", { settle: 10 });
     const grid = await page.locator('[data-chapter="stagger"]').getAttribute("data-grid-size");
     const stagger = await measure(page, 3500);
     const staggerFps = (stagger.count / stagger.ms) * 1000;

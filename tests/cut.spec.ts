@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { CHAPTERS, chapter } from "../src/lib/palette";
 import { hexToCss } from "../src/lib/contrast";
+import { unheld } from "./harness";
 
 // Cięcie hero → POSITION: po progu pole pod środkiem kadru = śliwka, po powrocie = róż,
 // pięć szybkich przejść przez próg nie kolejkuje animacji (maks. 2 odegrania: tam i z powrotem).
@@ -40,7 +41,8 @@ test("the dot grows into the plum field, scrolling back plays it in reverse", as
   expect(await page.evaluate(() => window.scrollY), "document jumped to POSITION").toBe(positionTop);
   await expect(page.locator('[data-chapter="position"]')).toHaveAttribute("data-phase", /intro|rest/);
 
-  // Wstecz: przewinięcie w górę za próg 20 % gra cięcie w drugą stronę.
+  // Wstecz: po zwolnieniu scrolla (smoother trzyma go 0.35 s po cięciu) przewinięcie w górę za próg 25 % gra cięcie w drugą stronę.
+  await unheld(page);
   await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), positionTop - vh * 0.3);
   await expect(html).toHaveAttribute("data-cut-position", "cutting");
   await expect(html).toHaveAttribute("data-cut-position", "before", { timeout: 3000 });
@@ -63,9 +65,13 @@ test("five fast crossings of the threshold do not queue cuts", async ({ page }) 
   const plays = Number(await page.locator("html").getAttribute("data-cut-plays"));
   const state = await page.locator("html").getAttribute("data-cut-position");
   console.log(`plays after 5 fast crossings: ${plays}, final state: ${state}`);
+  // Scroll w trakcie cięcia jest wstrzymany (bezwładność zjedzona), więc szybkie skoki nie kolejkują cięć: gra jedno.
   expect(plays, "at most one cut each way, no queue").toBeLessThanOrEqual(2);
   expect(state).not.toBe("cutting");
-  // Stan zgodny z pozycją dokumentu: ostatni skok był w górę, więc hero.
-  expect(state).toBe("before");
+  // Po zwolnieniu scrolla wyraźne przewinięcie w górę gra cięcie wstecz: stan zgodny z pozycją dokumentu.
+  await unheld(page);
+  await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), positionTop - vh * 1.1);
+  await expect(page.locator("html")).toHaveAttribute("data-cut-position", "before", { timeout: 4000 });
+  await unheld(page);
   expect(await centerColor(page)).toBe(hexToCss(CHAPTERS[0].bg));
 });
