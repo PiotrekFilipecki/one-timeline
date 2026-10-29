@@ -17,9 +17,18 @@ Model: Fable 5.1. Pierwszy z trzech PR-ów v7.1 po werdykcie Piotrka (kolory tak
 - **Stopka:** „Made by Piotrek Filipecki" z `## author` w COPY.md (Portfolio, GitHub). Sociale do uzupełnienia, gdy Piotrek poda adresy.
 - **COST:** czerwień tylko w trybie left/top. Z smootherem i ziarnem koszt klatki wzrósł na tyle, że 4 równoległe przeglądarki w testach przekraczały 17.5 ms w trybie transform i pole robiło się czerwone bez winy `transform`. Liczba ms zostaje prawdziwa w obu trybach; czerwień mówi o left/top, nie o obciążeniu maszyny (zmiana decyzji 1 z devloga P3).
 
+## Dogrywka: sociale i SEO (ten sam PR)
+
+- Stopka: Portfolio, LinkedIn, Instagram, GitHub (`## author` w COPY.md), `rel="me"`.
+- `src/lib/site.ts`: adres strony (Vercel do czasu domeny), tytuł, opis, autor z COPY.md. Metadane w `layout.tsx`: title template, description z nazwiskiem, keywords, `authors` / `creator` / `publisher`, canonical, robots (index, follow, max-image-preview large), Open Graph i Twitter card `summary_large_image`.
+- `app/opengraph-image.png` (1200×630) z `scripts/og.mjs`: zrzut hero w spoczynku z działającego builda (prawdziwy font i ziarno; `next/og` nie ma Anybody z next/font w czasie builda) + `opengraph-image.alt.txt`.
+- JSON-LD (`@graph`): WebSite, WebPage (about: GSAP, web animation; keywords) i Person (Piotrek Filipecki, url portfolio, `sameAs` LinkedIn, Instagram, GitHub) jako `author` i `creator`. To jest to „pozycjonowanie mnie": nazwisko w meta author/creator, w treści stopki i w schemie z profilami.
+- `app/robots.ts` (allow all, sitemap) i `app/sitemap.ts` (jedna strona). Build: `/robots.txt`, `/sitemap.xml`, `/opengraph-image.png` prerenderowane.
+- Czego nie ma i co warto dodać po domenie: własna domena w `SITE_URL` (dziś one-timeline.vercel.app), Google Search Console (weryfikacja przez meta `verification` w metadata), link zwrotny z portfolio do tej strony (najsilniejszy sygnał „to moje").
+
 ## Pomiary
 
-- lint 0 · tsc 0 · build 0 · `npm test` 53 passed, 16 skipped (shots), 3.7 min (w tym dwa nowe zachowania: progi od celu, reset po pętli).
+- lint 0 · tsc 0 · build 0 · `npm test` 53 passed, 16 skipped (shots), 2.8–3.7 min (w tym dwa nowe zachowania: progi od celu, reset po pętli). Jeden run miał timeout cięcia na 1920 px pod 4 workerami (samodzielnie 2/2 zielone); limit w `cutTo` 10 → 15 s.
 - Perf przy 4× CPU (perf.spec, serial): 60 fps we wszystkich rozdziałach, 0 długich klatek w ruchu, najgorsza klatka 31–39 ms (v7: 19–32 ms; smoother i grain mają swój koszt), hero start 1 długa klatka 93 ms. FCP 120 ms, LCP 148 ms (teraz `tl` w konturze), CLS 0. JS 731 KB raw / 236 KB gzip (+15 KB raw za ScrollSmoother).
 - Zrzuty: `docs/media/p5a/` (16 rozdziałów + stopka). Obejrzane: głowice w spoczynku z prawej, numery za sceną, bilet kodu, pionowa etykieta, ziarno widoczne, na 390 numer w górnym rogu nie wchodzi pod tekst.
 

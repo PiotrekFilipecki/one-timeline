@@ -155,8 +155,9 @@ export async function cutTo(page: Page, id: string, { settle = 8000 } = {}): Pro
   const top = await page.locator(`[data-chapter="${id}"]`).evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
   const vh = page.viewportSize()!.height;
   await page.evaluate((y) => window.scrollTo({ top: y, behavior: "instant" }), top - vh * 0.75);
-  // 10 s: cięcie trwa 0.6 s, ale przy 4 równoległych workerach klatki bywają rzadkie.
-  await page.waitForFunction((id) => document.documentElement.getAttribute(`data-cut-${id}`) === "after", id, { timeout: 10000 });
+  // 15 s: cięcie trwa 0.6 s (+ 1 s dojazdu smoothera), ale przy 4 równoległych workerach klatki bywają rzadkie
+  // (v7.1: jeden timeout na 10 s w pełnym runie na 1920 px; samodzielnie 2/2 zielone).
+  await page.waitForFunction((id) => document.documentElement.getAttribute(`data-cut-${id}`) === "after", id, { timeout: 15000 });
   // Rozdziały bez kontrolera (SCRUB, COST, YOURS) nie mają fazy: po cięciu stoją od razu.
   await page
     .waitForFunction((id) => {

@@ -1,6 +1,6 @@
 # STATUS · One Timeline v7
 
-**Faza:** v7.1 w toku (29.10.2026). PR 1 (`v7.1/scroll-grain-grid`: ScrollSmoother, ziarno, siatka, copy, favicon, stopka autora) gotowy do oceny na preview Vercela; PR 2 (blob-bohater + dekoracje SVG) i PR 3 (szlif, nagrania) w kolejce. Devlog: `docs/devlog/P5a-scroll-ziarno-siatka.md`. v7 (P0–P4) zamknięte, werdykt Piotrka: kolory tak, ruch do poprawy.
+**Faza:** v7.1 w toku (29.10.2026). PR 1 (`v7.1/scroll-grain-grid`: ScrollSmoother, ziarno, siatka, copy, favicon, stopka autora z socialami, SEO + JSON-LD + OG) gotowy do oceny na preview Vercela; PR 2 (blob-bohater + dekoracje SVG) i PR 3 (szlif, nagrania) w kolejce. Devlog: `docs/devlog/P5a-scroll-ziarno-siatka.md`. v7 (P0–P4) zamknięte, werdykt Piotrka: kolory tak, ruch do poprawy.
 
 ## Gotowość do wdrożenia
 - Build statyczny (`next build`, trasa `/` prerenderowana), zero env, zero backendu. Vercel: `vercel --prod`. VPS: `npm run build && npm run start -p 3000` za reverse proxy. Decyzja: Piotrek.

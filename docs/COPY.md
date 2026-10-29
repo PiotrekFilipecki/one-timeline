@@ -86,4 +86,6 @@ top: Back to the top
 ## author
 title: Made by Piotrek Filipecki
 link: Portfolio | https://piotrfilipecki.com
+link: LinkedIn | https://www.linkedin.com/in/piotr-filipecki-526796aa/
+link: Instagram | https://www.instagram.com/tuoszi/
 link: GitHub | https://github.com/PiotrekFilipecki
